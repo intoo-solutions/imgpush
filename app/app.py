@@ -242,10 +242,10 @@ def get_image(filename):
 
 @app.route("/metrics", methods=["GET"])
 def metrics():
-    ps = subprocess.Popen("ls -1 /images | wc -l" ,shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    ps = subprocess.Popen(f"ls -1 {settings.FILES_DIR} | wc -l", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     nbfiles = ps.communicate()[0].split()[0].decode('utf-8')
-    size = subprocess.check_output(['du','-s', "/images"]).split()[0].decode('utf-8')
-    return 'directory_size{service=\"imgpush\", directory=\"/images\"} %s\ndirectory_count{service=\"imgpsuh\", directory=\"/images\"} %s' % (size, nbfiles)
+    size = subprocess.check_output(['du','-s', settings.FILES_DIR]).split()[0].decode('utf-8')
+    return f'directory_size{{service=\"imgpush\", directory=\"{settings.FILES_DIR}\"}} {size}\ndirectory_count{{service=\"imgpsuh\", directory=\"{settings.FILES_DIR}\"}} {nbfiles}'
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, threaded=True)
