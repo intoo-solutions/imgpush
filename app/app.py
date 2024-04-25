@@ -1,4 +1,5 @@
 import datetime
+import mimetypes
 import shutil
 import time
 import glob
@@ -269,10 +270,23 @@ def _get_image(filename):
 
 @app.route("/metrics", methods=["GET"])
 def metrics():
-    ps = subprocess.Popen(f"ls -1 {settings.FILES_DIR} | wc -l", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    nbfiles = ps.communicate()[0].split()[0].decode('utf-8')
-    size = subprocess.check_output(['du','-s', settings.FILES_DIR]).split()[0].decode('utf-8')
-    return f'directory_size{{service=\"imgpush\", directory=\"{settings.FILES_DIR}\"}} {size}\ndirectory_count{{service=\"imgpsuh\", directory=\"{settings.FILES_DIR}\"}} {nbfiles}'
+    metrics = {}
+    for mime_type in settings.ALLOWED_MIME_FILE_TYPES:
+        extension = mimetypes.guess_extension(mime_type)
+        if extension:
+            extension = extension[1:] # remove dot from extension
+            ps = subprocess.Popen(f"find {settings.FILES_DIR} -type f -name '*.{extension}' | wc -l", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            nbfiles = ps.communicate()[0].split()[0].decode('utf-8')
+            size = subprocess.check_output([f'du -c {settings.FILES_DIR}/*.{extension} | tail -n 1 | cut -f 1'], shell=True).decode('utf-8').strip()
+            metrics[mime_type] = {"count": nbfiles, "size": size}
+
+    metrics_str = ""
+    for mime_type, data in metrics.items():
+        extension = mimetypes.guess_extension(mime_type)
+        metrics_str += f'directory_size{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {data["size"]}\n'
+        metrics_str += f'directory_count{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {data["count"]}\n'
+
+    return metrics_str
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, threaded=True)
