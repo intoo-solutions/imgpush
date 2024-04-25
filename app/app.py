@@ -78,7 +78,7 @@ def _clear_imagemagick_temp_files():
 def _get_random_filename():
     random_string = _generate_random_filename()
     if settings.NAME_STRATEGY == "randomstr":
-        file_exists = len(glob.glob(f"{settings.IMAGES_DIR}/{random_string}.*")) > 0
+        file_exists = len(glob.glob(f"{settings.FILES_DIR}/{random_string}.*")) > 0
         if file_exists:
             return _get_random_filename()
     return random_string
@@ -152,7 +152,7 @@ def liveness():
         ]
     )
 )
-def upload_image():
+def upload_file():
     _clear_imagemagick_temp_files()
 
     if "file" not in request.files:
@@ -167,7 +167,7 @@ def upload_image():
     error = None
 
     output_filename = os.path.basename(tmp_filepath) + f".{output_type}"
-    output_path = os.path.join(settings.IMAGES_DIR, output_filename)
+    output_path = os.path.join(settings.FILES_DIR, output_filename)
 
     try:
         if os.path.exists(output_path):
@@ -199,7 +199,7 @@ def delete_image(filename):
     # check the name looks like a filename and 
     # need some mort protection
     if(filename) and (re.match("^[\w\d-]+\.[\w\d]+$", filename)):
-        path = os.path.join(settings.IMAGES_DIR, filename)
+        path = os.path.join(settings.FILES_DIR, filename)
         # dont allow to delete "."
         if (os.path.exists(path)) and (os.path.isfile(path)):
             os.remove(path)
@@ -212,7 +212,7 @@ def get_image(filename):
     width = request.args.get("w", "")
     height = request.args.get("h", "")
 
-    path = os.path.join(settings.IMAGES_DIR, filename)
+    path = os.path.join(settings.FILES_DIR, filename)
 
     if (width or height) and (os.path.isfile(path)):
         try:
@@ -238,7 +238,7 @@ def get_image(filename):
             resized_image.close()
         return send_from_directory(settings.CACHE_DIR, resized_filename)
 
-    return send_from_directory(settings.IMAGES_DIR, filename)
+    return send_from_directory(settings.FILES_DIR, filename)
 
 @app.route("/metrics", methods=["GET"])
 def metrics():

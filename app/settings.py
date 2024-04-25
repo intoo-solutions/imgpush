@@ -1,6 +1,6 @@
 import os
 
-IMAGES_DIR = "/images/"
+FILES_DIR = "/files/"
 CACHE_DIR = "/cache/"
 OUTPUT_TYPE = None
 MAX_UPLOADS_PER_DAY = 1000
