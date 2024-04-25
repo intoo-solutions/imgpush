@@ -1,5 +1,16 @@
 import os
 
+#########################################
+######          STORAGE             #####
+#########################################
+
+# If this option is set to True, FILES_DIR will be ignored
+USE_S3 = False
+S3_ENDPOINT = ""
+S3_ACCESS_KEY_ID = ""
+S3_SECRET_ACCESS_KEY = ""
+S3_BUCKET_NAME = ""
+
 # The directory in which to store the files
 FILES_DIR = "/files/"
 # The directory in which to store "cached" resized imges
