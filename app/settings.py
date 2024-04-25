@@ -1,12 +1,19 @@
 import os
 
+# If this option is set to True, FILES_DIR will be ignored
+USE_S3 = False
+# The directory in which to store the files
 FILES_DIR = "/files/"
+# The directory in which to store "cached" resized imges
 CACHE_DIR = "/cache/"
+# Convert the files to this type when uploading
+# NOTE: This will only apply to file extensions from the RESIZABLE_MIME_FILE_TYPE setting
 OUTPUT_TYPE = None
 MAX_UPLOADS_PER_DAY = 1000
 MAX_UPLOADS_PER_HOUR = 100
 MAX_UPLOADS_PER_MINUTE = 20
 ALLOWED_ORIGINS = ["*"]
+# Possible values: randomstr, uuidv4
 NAME_STRATEGY = "randomstr"
 MAX_TMP_FILE_AGE = 5 * 60
 RESIZE_TIMEOUT = 5
