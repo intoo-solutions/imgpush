@@ -224,9 +224,10 @@ def get_image(filename):
                 400,
             )
 
-        filename_without_extension, extension = os.path.splitext(filename)
+        filename_without_extension, extension_with_dot = os.path.splitext(filename)
+        extension = extension_with_dot[1:]  # remove the dot from the extension
         dimensions = f"{width}x{height}"
-        resized_filename = filename_without_extension + f"_{dimensions}.{extension}"
+        resized_filename = f"{filename_without_extension}_{dimensions}.{extension}"
 
         resized_path = os.path.join(settings.CACHE_DIR, resized_filename)
 
