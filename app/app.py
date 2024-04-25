@@ -1,4 +1,5 @@
 import datetime
+import shutil
 import time
 import glob
 import os
@@ -29,7 +30,6 @@ limiter = Limiter(get_remote_address, app=app, default_limits=[])
 
 app.use_x_sendfile = True
 
-
 @app.after_request
 def after_request(resp):
     x_sendfile = resp.headers.get("X-Sendfile")
@@ -43,10 +43,11 @@ def after_request(resp):
 class InvalidSize(Exception):
     pass
 
-
 class CollisionError(Exception):
     pass
 
+class InvalidFileTypeError(Exception):
+    pass
 
 def _get_size_from_string(size):
     try:
@@ -141,7 +142,6 @@ def _resize_image(path, width, height):
 def liveness():
     return Response(status=200)
 
-
 @app.route("/", methods=["POST"])
 @limiter.limit(
     "".join(
@@ -163,26 +163,36 @@ def upload_file():
     random_string = _get_random_filename()
     tmp_filepath = os.path.join("/tmp/", random_string)
     file.save(tmp_filepath)
-    output_type = settings.OUTPUT_TYPE or filetype.guess_extension(tmp_filepath)
-    error = None
 
+    file_type = filetype.guess(tmp_filepath)
+    if file_type is None:
+        return jsonify(error="File type could not be determined!"), 400
+
+    output_type = settings.OUTPUT_TYPE or file_type.extension
     output_filename = os.path.basename(tmp_filepath) + f".{output_type}"
     output_path = os.path.join(settings.FILES_DIR, output_filename)
 
+    error = None
+
     try:
+        if file_type.mime not in settings.ALLOWED_MIME_FILE_TYPES:
+            raise InvalidFileTypeError
         if os.path.exists(output_path):
             raise CollisionError
-        with Image(filename=tmp_filepath) as img:
-            img.strip()
-            if output_type not in ["gif"]:
-                with img.sequence[0] as first_frame:
-                    with Image(image=first_frame) as first_frame_img:
-                        with first_frame_img.convert(output_type) as converted:
-                            converted.save(filename=output_path)
-            else:
-                with img.convert(output_type) as converted:
-                    converted.save(filename=output_path)
-    except MissingDelegateError:
+        if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPE:
+            shutil.move(tmp_filepath, output_path)
+        else:
+            with Image(filename=tmp_filepath) as img:
+                img.strip()
+                if output_type not in ["gif"]:
+                    with img.sequence[0] as first_frame:
+                        with Image(image=first_frame) as first_frame_img:
+                            with first_frame_img.convert(output_type) as converted:
+                                converted.save(filename=output_path)
+                else:
+                    with img.convert(output_type) as converted:
+                        converted.save(filename=output_path)
+    except (MissingDelegateError, InvalidFileTypeError):
         error = "Invalid Filetype"
     finally:
         if os.path.exists(tmp_filepath):
@@ -208,7 +218,23 @@ def delete_image(filename):
 
 @app.route("/<string:filename>")
 @limiter.exempt
-def get_image(filename):
+def get_file(filename):
+    path = os.path.join(settings.FILES_DIR, filename)
+
+    if os.path.isfile(path):
+
+        file_type = filetype.guess(path)
+        if file_type is None:
+            return jsonify(error="File type could not be determined!"), 400
+        
+        if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPE:
+            return send_from_directory(settings.FILES_DIR, filename)
+        else:
+            return _get_image(filename)
+        
+    return jsonify(error="File not found!"), 404
+
+def _get_image(filename):
     width = request.args.get("w", "")
     height = request.args.get("h", "")
 
