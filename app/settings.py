@@ -1,5 +1,7 @@
 import os
 
+# If this option is set to True, FILES_DIR will be ignored
+USE_S3 = False
 # The directory in which to store the files
 FILES_DIR = "/files/"
 # The directory in which to store "cached" resized imges
