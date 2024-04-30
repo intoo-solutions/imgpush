@@ -10,9 +10,10 @@ import uuid
 import re
 import subprocess
 
+from storage import get_storage
 import filetype
 import timeout_decorator
-from flask import Flask, jsonify, request, send_from_directory, Response
+from flask import Flask, jsonify, request, send_file, Response, send_from_directory
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -24,6 +25,8 @@ import settings
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
+
+storage = get_storage()
 
 CORS(app, origins=settings.ALLOWED_ORIGINS)
 app.config["MAX_CONTENT_LENGTH"] = settings.MAX_SIZE_MB * 1024 * 1024
@@ -171,17 +174,17 @@ def upload_file():
 
     output_type = settings.OUTPUT_TYPE or file_type.extension
     output_filename = os.path.basename(tmp_filepath) + f".{output_type}"
-    output_path = os.path.join(settings.FILES_DIR, output_filename)
 
     error = None
 
     try:
         if file_type.mime not in settings.ALLOWED_MIME_FILE_TYPES:
             raise InvalidFileTypeError
-        if os.path.exists(output_path):
+        if storage.exists(output_filename):
             raise CollisionError
         if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPE:
-            shutil.move(tmp_filepath, output_path)
+            storage.save(file, output_filename)
+            os.remove(tmp_filepath)
         else:
             with Image(filename=tmp_filepath) as img:
                 img.strip()
@@ -189,10 +192,10 @@ def upload_file():
                     with img.sequence[0] as first_frame:
                         with Image(image=first_frame) as first_frame_img:
                             with first_frame_img.convert(output_type) as converted:
-                                converted.save(filename=output_path)
+                                storage.save(converted, output_filename)
                 else:
                     with img.convert(output_type) as converted:
-                        converted.save(filename=output_path)
+                        storage.save(converted, output_filename)
     except (MissingDelegateError, InvalidFileTypeError):
         error = "Invalid Filetype"
     finally:
@@ -208,30 +211,36 @@ def upload_file():
 @limiter.exempt
 def delete_image(filename):
     # check the name looks like a filename and 
-    # need some mort protection
+    # need some more protection
     if(filename) and (re.match("^[\w\d-]+\.[\w\d]+$", filename)):
-        path = os.path.join(settings.FILES_DIR, filename)
-        # dont allow to delete "."
-        if (os.path.exists(path)) and (os.path.isfile(path)):
-            os.remove(path)
+        storage.delete(filename)
     return Response(status=200)
 
 
 @app.route("/<string:filename>")
 @limiter.exempt
 def get_file(filename):
-    path = os.path.join(settings.FILES_DIR, filename)
+    if storage.exists(filename):
 
-    if os.path.isfile(path):
+        tmp_filepath, delete_temporary_file = storage.get(filename)
 
-        file_type = filetype.guess(path)
+        file_type = filetype.guess(tmp_filepath)
+
+        print(file_type)
+        print(tmp_filepath)
+
+        response = None
+
         if file_type is None:
-            return jsonify(error="File type could not be determined!"), 400
+            response = jsonify(error="File type could not be determined!"), 400
         
         if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPE:
-            return send_from_directory(settings.FILES_DIR, filename)
+            response = send_from_directory(settings.FILES_DIR, filename)
         else:
-            return _get_image(filename)
+            response = _get_image(tmp_filepath)
+        
+        delete_temporary_file()
+        return response
         
     return jsonify(error="File not found!"), 404
 
