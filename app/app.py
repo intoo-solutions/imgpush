@@ -1,6 +1,4 @@
 import datetime
-import mimetypes
-import shutil
 import time
 import glob
 import os
@@ -8,12 +6,11 @@ import random
 import string
 import uuid
 import re
-import subprocess
 
 from storage import get_storage
 import filetype
 import timeout_decorator
-from flask import Flask, jsonify, request, send_file, Response, send_from_directory
+from flask import Flask, jsonify, request, Response, send_from_directory
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -279,23 +276,7 @@ def _get_image(filename):
 
 @app.route("/metrics", methods=["GET"])
 def metrics():
-    metrics = {}
-    for mime_type in settings.ALLOWED_MIME_FILE_TYPES:
-        extension = mimetypes.guess_extension(mime_type)
-        if extension:
-            extension = extension[1:] # remove dot from extension
-            ps = subprocess.Popen(f"find {settings.FILES_DIR} -type f -name '*.{extension}' | wc -l", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            nbfiles = ps.communicate()[0].split()[0].decode('utf-8')
-            size = subprocess.check_output([f'du -c {settings.FILES_DIR}/*.{extension} | tail -n 1 | cut -f 1'], shell=True).decode('utf-8').strip()
-            metrics[mime_type] = {"count": nbfiles, "size": size}
-
-    metrics_str = ""
-    for mime_type, data in metrics.items():
-        extension = mimetypes.guess_extension(mime_type)
-        metrics_str += f'directory_size{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {data["size"]}\n'
-        metrics_str += f'directory_count{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {data["count"]}\n'
-
-    return metrics_str
+    return storage.get_metrics()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, threaded=True)
