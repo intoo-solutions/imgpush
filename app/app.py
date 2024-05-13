@@ -20,14 +20,24 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 import settings
 
+print("imgpush is starting...")
+
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
+print("-" * 40)
+
 storage = get_storage()
+print("Using storage: %s" % storage.__class__.__name__)
+print(storage)
+
+print("-" * 40)
 
 CORS(app, origins=settings.ALLOWED_ORIGINS)
 app.config["MAX_CONTENT_LENGTH"] = settings.MAX_SIZE_MB * 1024 * 1024
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
+
+print("imgpush is listening on port 5000!")
 
 app.use_x_sendfile = True
 
@@ -164,6 +174,7 @@ def upload_file():
     random_string = _get_random_filename()
     tmp_filepath = os.path.join("/tmp/", random_string)
     file.save(tmp_filepath)
+    file.seek(0)
 
     file_type = filetype.guess(tmp_filepath)
     if file_type is None:
@@ -223,15 +234,11 @@ def get_file(filename):
 
         file_type = filetype.guess(tmp_filepath)
 
-        print(file_type)
-        print(tmp_filepath)
-
         response = None
 
         if file_type is None:
-            response = jsonify(error="File type could not be determined!"), 400
-        
-        if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPE:
+            response = jsonify(error="File type could not be determined!"), 500
+        elif file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPE:
             response = send_from_directory(settings.FILES_DIR, filename)
         else:
             response = _get_image(tmp_filepath)

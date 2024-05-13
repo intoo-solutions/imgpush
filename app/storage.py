@@ -69,6 +69,9 @@ class FileSystemStorage(Storage):
             metrics_str += f'directory_count{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {data["count"]}\n'
 
         return metrics_str
+    
+    def __str__(self) -> str:
+        return "Directory = %s" % settings.FILES_DIR
 
 
 class S3Storage(Storage):
@@ -122,11 +125,12 @@ class S3Storage(Storage):
             metrics_str += f'directory_count{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {count}\n'
 
         return metrics_str
-            
-        
+
+    def __str__(self) -> str:
+        return "Endpoint = %s\nBucket name = %s" % (settings.S3_ENDPOINT, settings.S3_BUCKET_NAME)
 
 def get_storage():
-    if settings.USE_S3:
+    if settings.S3_ENDPOINT is not None:
         return S3Storage()
     else:
         return FileSystemStorage()
