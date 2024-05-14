@@ -1,7 +1,5 @@
 import os
 
-# If this option is set to True, FILES_DIR will be ignored
-USE_S3 = False
 # The directory in which to store the files
 FILES_DIR = "/files/"
 # The directory in which to store "cached" resized imges
@@ -33,28 +31,6 @@ VALID_SIZES = []
 #########################################
 ######          File types          #####
 #########################################
-
-# Those files will be treated as images, meaning
-# they will be resized if the query parameters are present
-RESIZABLE_MIME_FILE_TYPE = [
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/tiff',
-    'image/webp',
-    'image/svg+xml',
-]
-
-# Those files will be allowed to be uploaded
-ALLOWED_MIME_FILE_TYPES = [
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/tiff',
-    'image/webp',
-    'image/svg+xml',
-    'application/pdf',
-]
 
 # Those files will be treated as images, meaning
 # they will be resized if the query parameters are present
