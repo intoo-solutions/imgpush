@@ -1,7 +1,5 @@
 import os
 
-# If this option is set to True, FILES_DIR will be ignored
-USE_S3 = False
 # The directory in which to store the files
 FILES_DIR = "/files/"
 # The directory in which to store "cached" resized imges
@@ -9,18 +7,30 @@ CACHE_DIR = "/cache/"
 # Convert the files to this type when uploading
 # NOTE: This will only apply to file extensions from the RESIZABLE_MIME_FILE_TYPE setting
 OUTPUT_TYPE = None
+
+#########################################
+######          LIMITS              #####
+#########################################
+
 MAX_UPLOADS_PER_DAY = 1000
 MAX_UPLOADS_PER_HOUR = 100
 MAX_UPLOADS_PER_MINUTE = 20
+MAX_TMP_FILE_AGE = 5 * 60
+RESIZE_TIMEOUT = 5
+MAX_SIZE_MB = 16
+
+#########################################
+######          OTHERS              #####
+#########################################
+
 ALLOWED_ORIGINS = ["*"]
 # Possible values: randomstr, uuidv4
 NAME_STRATEGY = "randomstr"
-MAX_TMP_FILE_AGE = 5 * 60
-RESIZE_TIMEOUT = 5
-
 VALID_SIZES = []
 
-MAX_SIZE_MB = 16
+#########################################
+######          File types          #####
+#########################################
 
 # Those files will be treated as images, meaning
 # they will be resized if the query parameters are present
