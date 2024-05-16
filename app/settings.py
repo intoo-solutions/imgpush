@@ -4,8 +4,7 @@ import os
 ######          STORAGE             #####
 #########################################
 
-# If this option is set to True, FILES_DIR will be ignored
-USE_S3 = False
+# If this option is set to None, FILES_DIR will be used. Otherwise, imgpush will try establish a connection to the S3 endpoint
 S3_ENDPOINT = ""
 S3_ACCESS_KEY_ID = ""
 S3_SECRET_ACCESS_KEY = ""
