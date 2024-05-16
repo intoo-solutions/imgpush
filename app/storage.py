@@ -1,5 +1,7 @@
+import datetime
 import json
 import mimetypes
+import time
 import filetype
 import os
 import subprocess
@@ -54,6 +56,8 @@ class FileSystemStorage(Storage):
 
     def get_metrics(self):
         metrics = {}
+        start_time = time.time()
+
         for mime_type in settings.ALLOWED_MIME_FILE_TYPES:
             extension = mimetypes.guess_extension(mime_type)
             if extension:
@@ -65,9 +69,19 @@ class FileSystemStorage(Storage):
 
         metrics_str = ""
         for mime_type, data in metrics.items():
+            size_in_kilobytes = data["size"]
+            file_count = data["count"]
+
             extension = mimetypes.guess_extension(mime_type)
-            metrics_str += f'directory_size{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {data["size"]}\n'
-            metrics_str += f'directory_count{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {data["count"]}\n'
+            metrics_str += f'directory_size_in_kilobytes{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {size_in_kilobytes}\n'
+            metrics_str += f'directory_count{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {file_count}\n'
+
+        end_time = time.time()
+        total_time = (end_time - start_time) * 1000
+
+        last_execution_date = datetime.datetime.now().isoformat()
+        metrics_str += f'last_execution_date{{service="imgpush-metrics-rebuilder", directory="{settings.FILES_DIR}"}} {last_execution_date}\n'
+        metrics_str += f'last_execution_time_in_milliseconds{{service="imgpush-metrics-rebuilder", directory="{settings.FILES_DIR}"}} {total_time}\n'
 
         return metrics_str
     
@@ -129,16 +143,22 @@ class S3Storage(Storage):
         metrics_file = get_or_create_metrics_file()
         metrics = json.load(metrics_file)
 
+        last_execution_date = metrics.get("last_execution_date", datetime.datetime.now().isoformat())
+        last_execution_time_in_milliseconds = metrics.get("last_execution_time_in_milliseconds", 0)
+
         metrics_str = ""
         for mime_type in settings.ALLOWED_MIME_FILE_TYPES:
             data = metrics.get(mime_type, {"count": 0, "total_size": 0})
             
             count = data["count"]
-            total_size = data["total_size"]
+            total_size_in_kilobytes = data["total_size"] / 1024
             extension = mimetypes.guess_extension(mime_type)
 
-            metrics_str += f'directory_size{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {total_size}\n'
-            metrics_str += f'directory_count{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {count}\n'
+            metrics_str += f'directory_size_in_kilobytes{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.S3_BUCKET_NAME} Bucket"}} {total_size_in_kilobytes}\n'
+            metrics_str += f'directory_count{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.S3_BUCKET_NAME} Bucket"}} {count}\n'
+
+        metrics_str += f'last_execution_date{{service="imgpush-metrics-rebuilder", directory="{settings.S3_BUCKET_NAME} Bucket"}} {last_execution_date}\n'
+        metrics_str += f'last_execution_time_in_milliseconds{{service="imgpush-metrics-rebuilder", directory="{settings.S3_BUCKET_NAME} Bucket"}} {last_execution_time_in_milliseconds}\n'
 
         return metrics_str
 
