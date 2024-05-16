@@ -171,6 +171,7 @@ def upload_file():
 
     file = request.files["file"]
 
+    # Saving the file to a temporary location
     random_string = _get_random_filename()
     tmp_filepath = os.path.join("/tmp/", random_string)
     file.save(tmp_filepath)
@@ -194,16 +195,24 @@ def upload_file():
             storage.save(file, output_filename)
             os.remove(tmp_filepath)
         else:
+            converted_file_path = f"{tmp_filepath}.{output_type}"
+
             with Image(filename=tmp_filepath) as img:
                 img.strip()
                 if output_type not in ["gif"]:
                     with img.sequence[0] as first_frame:
                         with Image(image=first_frame) as first_frame_img:
                             with first_frame_img.convert(output_type) as converted:
-                                storage.save(converted, output_filename)
+                                converted.save(filename=converted_file_path)
                 else:
                     with img.convert(output_type) as converted:
-                        storage.save(converted, output_filename)
+                        converted.save(filename=converted_file_path)
+            
+            converted_file = open(converted_file_path, "rb")
+            storage.save(converted_file, output_filename)
+            # After saving the converted file on the storage provider, we can delete the temporary file from the filesystem
+            os.remove(converted_file_path)
+
     except (MissingDelegateError, InvalidFileTypeError):
         error = "Invalid Filetype"
     finally:
