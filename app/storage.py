@@ -1,5 +1,6 @@
 import json
 import mimetypes
+import filetype
 import os
 import subprocess
 import boto3
@@ -83,10 +84,25 @@ class S3Storage(Storage):
         )
 
     def save(self, file, filename):
-        self.s3.upload_fileobj(file, settings.S3_BUCKET_NAME, filename)
+        file_size = file.seek(0, os.SEEK_END)
+        file.seek(0)  # Reset the file pointer to the beginning to allow S3 to read the file
 
+        mime_type = filetype.guess(file).mime
+
+        self.s3.upload_fileobj(file, settings.S3_BUCKET_NAME, filename)
+        update_metrics(file_size, mime_type)
+        
     def delete(self, filename):
+        try:
+            # If the file does not exist, head_object will raise an exception
+            object_info = self.s3.head_object(Bucket=settings.S3_BUCKET_NAME, Key=filename)
+        except:
+            return
+        
+        file_size, mime_type = object_info["ContentLength"], object_info["ContentType"]
+
         self.s3.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=filename)
+        update_metrics(file_size, mime_type, remove=True)
 
     def exists(self, filename):
         try:
@@ -110,7 +126,7 @@ class S3Storage(Storage):
         return tmp_path, lambda: os.remove(tmp_path)
     
     def get_metrics(self):
-        metrics_file = open('metrics.json')
+        metrics_file = get_or_create_metrics_file()
         metrics = json.load(metrics_file)
 
         metrics_str = ""
@@ -134,3 +150,31 @@ def get_storage():
         return S3Storage()
     else:
         return FileSystemStorage()
+    
+def get_or_create_metrics_file():
+    if not os.path.exists('metrics.json'):
+        print("[Metrics] File metrics.json does not exist. Creating it.")
+        open('metrics.json', 'w').write('{}')
+
+    return open('metrics.json')
+
+def update_metrics(file_size, mime_type, remove=False):
+    metrics_file = get_or_create_metrics_file()
+    metrics = json.load(metrics_file)
+
+    data = metrics.get(mime_type, {"count": 0, "total_size": 0})
+
+    if remove:
+        data["count"] -= 1
+        data["total_size"] -= file_size
+    else:
+        data["count"] += 1
+        data["total_size"] += file_size
+    
+    metrics[mime_type] = data
+    
+    metrics_file.close()
+
+    metrics_file = open('metrics.json', 'w')
+    json.dump(metrics, metrics_file)
+    metrics_file.close()
