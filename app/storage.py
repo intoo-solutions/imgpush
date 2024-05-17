@@ -168,11 +168,14 @@ def get_storage():
         return FileSystemStorage()
     
 def get_or_create_metrics_file():
-    if not os.path.exists('metrics.json'):
-        print("[Metrics] File metrics.json does not exist. Creating it.")
-        open('metrics.json', 'w').write('{}')
+    if not os.path.exists(os.path.dirname(settings.METRICS_FILE_PATH)):
+        os.makedirs(os.path.dirname(settings.METRICS_FILE_PATH))
+        print(f"[Metrics] Directory {os.path.dirname(settings.METRICS_FILE_PATH)} does not exist. Creating it.")
+    if not os.path.exists(settings.METRICS_FILE_PATH):
+        print(f"[Metrics] File {settings.METRICS_FILE_PATH} does not exist. Creating it.")
+        open(settings.METRICS_FILE_PATH, 'w').write('{}')
 
-    return open('metrics.json')
+    return open(settings.METRICS_FILE_PATH)
 
 def update_metrics(file_size, mime_type, remove=False):
     metrics_file = get_or_create_metrics_file()
@@ -191,6 +194,6 @@ def update_metrics(file_size, mime_type, remove=False):
     
     metrics_file.close()
 
-    metrics_file = open('metrics.json', 'w')
+    metrics_file = open(settings.METRICS_FILE_PATH, 'w')
     json.dump(metrics, metrics_file)
     metrics_file.close()

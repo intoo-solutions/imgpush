@@ -14,6 +14,8 @@ S3_BUCKET_NAME = ""
 FILES_DIR = "/files/"
 # The directory in which to store "cached" resized imges
 CACHE_DIR = "/cache/"
+# This is the path to the metrics file, used by the metrics endpoint for the S3Storage class
+METRICS_FILE_PATH = "/metrics/metrics.json"
 # Convert the files to this type when uploading
 # NOTE: This will only apply to file extensions from the RESIZABLE_MIME_FILE_TYPE setting
 OUTPUT_TYPE = None

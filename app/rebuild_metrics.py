@@ -104,8 +104,10 @@ logger.info("Saving file metrics.json...")
 import json
 
 # Saving the metrics to a file
+# if the file doesn't exist, create it
 try:
-    with open("metrics.json", "w") as f:
+    os.makedirs(os.path.dirname(settings.METRICS_FILE_PATH), exist_ok=True)
+    with open(settings.METRICS_FILE_PATH, "w") as f:
         json.dump(metrics, f)
     logger.info("Metrics saved!")
 except Exception as e:
