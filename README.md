@@ -27,6 +27,14 @@ To start the service, run:
 docker-compose up
 ```
 
+## Import files to S3
+
+```bash
+aws s3 cp SOURCE_DIR s3://DEST_BUCKET/ --recursive
+```
+
+Full documentation: https://docs.aws.amazon.com/cli/latest/reference/s3/cp.html
+
 ## Usage
 
 Uploading a file:
