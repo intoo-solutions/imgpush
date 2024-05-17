@@ -234,7 +234,6 @@ def delete_image(filename):
 
 
 @app.route("/<string:filename>")
-@limiter.shared_limit("100/hour", scope="get_file")
 @limiter.exempt
 def get_file(filename):
     if not storage.exists(filename):
