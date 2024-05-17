@@ -146,7 +146,7 @@ class S3Storage(Storage):
             data = metrics.get(mime_type, {"count": 0, "total_size": 0})
             
             count = data["count"]
-            total_size_in_kilobytes = data["total_size"] / 1024
+            total_size_in_kilobytes = int(data["total_size"] / 1024)
             extension = mimetypes.guess_extension(mime_type)
 
             metrics_str += f'directory_size_in_kilobytes{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.S3_BUCKET_NAME} Bucket"}} {total_size_in_kilobytes}\n'
