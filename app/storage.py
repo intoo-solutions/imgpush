@@ -126,9 +126,10 @@ class S3Storage(Storage):
             return False
 
     def get(self, filename):
-        # Should store the file in a temporary directory
-        # and return the path to the file, as well as a function to delete the file
-
+        """
+        Should store the file in a temporary directory
+        and return the path to the file, as well as a function to delete the file
+        """
         tmp_path = f"/tmp/{filename}"
         self.s3.download_file(settings.S3_BUCKET_NAME, filename, tmp_path)
 
