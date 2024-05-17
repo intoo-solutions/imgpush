@@ -129,13 +129,8 @@ class S3Storage(Storage):
         # Should store the file in a temporary directory
         # and return the path to the file, as well as a function to delete the file
 
-        tmp_path = f"/temporary/{filename}"
+        tmp_path = f"/tmp/{filename}"
         self.s3.download_file(settings.S3_BUCKET_NAME, filename, tmp_path)
-
-        # print content of /tmp directory
-        print("Content of /temporary directory:")
-        for file in os.listdir("/temporary"):
-            print(file)
 
         return tmp_path, lambda: os.remove(tmp_path)
     
