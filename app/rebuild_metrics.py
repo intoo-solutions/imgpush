@@ -7,7 +7,8 @@ import settings
 
 metrics = {}
 thread_count = 16
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [Metrics] %(message)s')
+
 
 # Fetching storage provider
 storage = get_storage()
@@ -15,7 +16,7 @@ if storage.__class__.__name__ == "FileSystemStorage":
     print("Cannot rebuild metrics with FileSystemStorage")
     exit(1)
 
-print("[Metrics] Rebuilding from S3 bucket")
+print("Rebuilding from S3 bucket")
 print(storage)
 
 # The method that will process each object
@@ -37,8 +38,17 @@ all_objects = []
 paginator = storage.s3.get_paginator('list_objects')
 start_time = time.time()
 
-for page in paginator.paginate(Bucket=settings.S3_BUCKET_NAME):
+print("Fetching all objects from S3 bucket...")
+
+for index, page in enumerate(paginator.paginate(Bucket=settings.S3_BUCKET_NAME)):
+
+    page_content = page["Contents"]
+    object_count = len(page_content)
+
+    print(f"Fetched {object_count} {'more ' if index > 0 else ''}objects... ({index + 1}/?)")
     all_objects.extend(page["Contents"])
+    
+print(f"Got {len(all_objects)} objects to process. Starting {thread_count} threads!")
 
 # Process the objects
 last_time = time.time()
@@ -59,11 +69,14 @@ average_time = total_time / len(all_objects) if len(all_objects) > 0 else 0
 metrics["last_execution_time_in_milliseconds"] = int(total_time * 1000)
 metrics["last_execution_date"] = datetime.datetime.now().isoformat()
 
-print(f"Rebuilt metrics from {len(all_objects)} objects in S3 bucket {settings.S3_BUCKET_NAME}")
-print(f"It took {total_time:.2f}s to rebuild the metrics (average of {average_time:.2f}s per object)")
+print(f"Metrics rebuilt in {total_time:.2f}s (average of {average_time:.2f}s per object)")
+print(f"Saving file metrics.json...")
 
 import json
 
 # Saving the metrics to a file
 with open("metrics.json", "w") as f:
     json.dump(metrics, f)
+
+print(f"Metrics saved!")
+print(f"Goodbye!")
