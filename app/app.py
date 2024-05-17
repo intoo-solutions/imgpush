@@ -1,4 +1,5 @@
 import datetime
+import mimetypes
 import time
 import glob
 import os
@@ -10,7 +11,7 @@ import re
 from storage import get_storage
 import filetype
 import timeout_decorator
-from flask import Flask, jsonify, request, Response, send_from_directory
+from flask import Flask, jsonify, request, Response, send_file, send_from_directory
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -233,35 +234,25 @@ def delete_image(filename):
 
 
 @app.route("/<string:filename>")
+@limiter.shared_limit("100/hour", scope="get_file")
 @limiter.exempt
 def get_file(filename):
-    if storage.exists(filename):
+    if not storage.exists(filename):
+        return jsonify(error="File not found!"), 404
 
-        tmp_filepath, delete_temporary_file = storage.get(filename)
+    file_type = mimetypes.guess_type(filename)
+    mime_type = file_type[0]
 
-        file_type = filetype.guess(tmp_filepath)
-
-        response = None
-
-        if file_type is None:
-            response = jsonify(error="File type could not be determined!"), 500
-        elif file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPE:
-            response = send_from_directory(settings.FILES_DIR, filename)
-        else:
-            response = _get_image(tmp_filepath)
-        
-        delete_temporary_file()
+    if file_type is None:
+        response = jsonify(error="File type could not be determined!"), 500
         return response
-        
-    return jsonify(error="File not found!"), 404
-
-def _get_image(filename):
+    
     width = request.args.get("w", "")
     height = request.args.get("h", "")
 
-    path = os.path.join(settings.FILES_DIR, filename)
-
-    if (width or height) and (os.path.isfile(path)):
+    # If the file type is resizable and the user is asking for a resized version
+    # we first check if it is cached before downloading the file
+    if mime_type in settings.RESIZABLE_MIME_FILE_TYPE and (width or height):
         try:
             width = _get_size_from_string(width)
             height = _get_size_from_string(height)
@@ -271,22 +262,47 @@ def _get_image(filename):
                 400,
             )
 
-        filename_without_extension, extension_with_dot = os.path.splitext(filename)
-        extension = extension_with_dot[1:]  # remove the dot from the extension
-        dimensions = f"{width}x{height}"
-        resized_filename = f"{filename_without_extension}_{dimensions}.{extension}"
+        response = get_or_create_resized_image(filename, width, height)
+        apply_cache(response)
+        return response
+    
+    # If the file type is not resizable, or the user is not asking for a resized version
+    # We serve the file directly
+    tmp_filepath, delete_temporary_file = storage.get(filename)
 
-        resized_path = os.path.join(settings.CACHE_DIR, resized_filename)
+    response = send_file(tmp_filepath)
+    delete_temporary_file()
 
-        if not os.path.isfile(resized_path) and (width or height):
-            _clear_imagemagick_temp_files()
-            resized_image = _resize_image(path, width, height)
-            resized_image.strip()
-            resized_image.save(filename=resized_path)
-            resized_image.close()
+    apply_cache(response)
+    return response
+
+def apply_cache(response):
+    response.headers["Cache-Control"] = f"public, max-age={60*60}"
+    response.headers["Expires"] = f"{60*60}"
+
+def get_or_create_resized_image(filename, width, height):
+    filename_without_extension, extension_with_dot = os.path.splitext(filename)
+    extension = extension_with_dot[1:]  # remove the dot from the extension
+    dimensions = f"{width}x{height}"
+    resized_filename = f"{filename_without_extension}_{dimensions}.{extension}"
+
+    resized_path = os.path.join(settings.CACHE_DIR, resized_filename)
+
+    # If the resized version is cached, we return it
+    if os.path.isfile(resized_path) and (width or height):
         return send_from_directory(settings.CACHE_DIR, resized_filename)
+    # If the resized version is not cached, we generate it and return it
+    else:
+        tmp_filepath, delete_temporary_file = storage.get(filename)
 
-    return send_from_directory(settings.FILES_DIR, filename)
+        resized_image = _resize_image(tmp_filepath, width, height)
+        resized_image.strip()
+        
+        resized_image.save(filename=resized_path)
+        resized_image.close()
+        
+        delete_temporary_file()
+        return send_file(resized_path)
 
 @app.route("/metrics", methods=["GET"])
 def metrics():
