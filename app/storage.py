@@ -161,7 +161,7 @@ class S3Storage(Storage):
         return "Endpoint = %s\nBucket name = %s" % (settings.S3_ENDPOINT, settings.S3_BUCKET_NAME)
 
 def get_storage():
-    if settings.S3_ENDPOINT is not None:
+    if settings.S3_ENDPOINT is not None and settings.S3_ENDPOINT != "":
         return S3Storage()
     else:
         return FileSystemStorage()
