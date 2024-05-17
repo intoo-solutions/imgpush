@@ -1,7 +1,9 @@
 #!/bin/bash
 
+# This is to prevent logs from not showing up in the docker logs command
+export PYTHONUNBUFFERED=1
+
 if [ "$REBUILD_METRICS" = "true" ]; then
-    export PYTHONUNBUFFERED=1
     python3 rebuild_metrics.py
     exit 0
 fi
