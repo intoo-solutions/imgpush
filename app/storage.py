@@ -168,9 +168,12 @@ def get_storage():
         return FileSystemStorage()
     
 def get_or_create_metrics_file():
+    # Create the metrics folder if it does not exist
     if not os.path.exists(os.path.dirname(settings.METRICS_FILE_PATH)):
         os.makedirs(os.path.dirname(settings.METRICS_FILE_PATH))
         print(f"[Metrics] Directory {os.path.dirname(settings.METRICS_FILE_PATH)} does not exist. Creating it.")
+        
+    # Create the metrics file if it does not exist
     if not os.path.exists(settings.METRICS_FILE_PATH):
         print(f"[Metrics] File {settings.METRICS_FILE_PATH} does not exist. Creating it.")
         open(settings.METRICS_FILE_PATH, 'w').write('{}')
@@ -178,22 +181,26 @@ def get_or_create_metrics_file():
     return open(settings.METRICS_FILE_PATH)
 
 def update_metrics(file_size, mime_type, remove=False):
-    metrics_file = get_or_create_metrics_file()
-    metrics = json.load(metrics_file)
+    try:
+        metrics_file = get_or_create_metrics_file()
+        metrics = json.load(metrics_file)
 
-    data = metrics.get(mime_type, {"count": 0, "total_size": 0})
+        data = metrics.get(mime_type, {"count": 0, "total_size": 0})
 
-    if remove:
-        data["count"] -= 1
-        data["total_size"] -= file_size
-    else:
-        data["count"] += 1
-        data["total_size"] += file_size
-    
-    metrics[mime_type] = data
-    
-    metrics_file.close()
+        if remove:
+            data["count"] -= 1
+            data["total_size"] -= file_size
+        else:
+            data["count"] += 1
+            data["total_size"] += file_size
 
-    metrics_file = open(settings.METRICS_FILE_PATH, 'w')
-    json.dump(metrics, metrics_file)
-    metrics_file.close()
+        metrics[mime_type] = data
+
+        metrics_file.close()
+
+        metrics_file = open(settings.METRICS_FILE_PATH, 'w')
+        json.dump(metrics, metrics_file)
+        metrics_file.close()
+    except Exception as e:
+        print(f"[Metrics] Error updating metrics: {e}")
+        return
