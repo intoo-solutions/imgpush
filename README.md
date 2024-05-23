@@ -18,16 +18,18 @@ Minimalist Self-hosted File Service for user submitted files in your app (e.g. a
 When developing locally, you can use the `docker-compose.yml` file to start the service. This will start the service on port 5000. To configure the service, you can copy the `.env.example` file to `.env` and adjust the settings to your liking.
 
 ```bash
-cp .env.example .env
+wsl -e cp .env.example .env
 ```
 
 To start the service, run:
 
 ```bash
-docker-compose up
+wsl -e docker compose up
 ```
 
 ## Import files to S3
+
+If you want to migrate from using the file system to S3, you can use the AWS CLI to copy the files to S3. The command to copy the files is:
 
 ```bash
 aws s3 cp SOURCE_DIR s3://DEST_BUCKET/ --recursive
