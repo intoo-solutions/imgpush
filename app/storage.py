@@ -40,7 +40,8 @@ class Storage(ABC):
 
 class FileSystemStorage(Storage):
     def save(self, file, filename):
-        file.save(os.path.join(settings.FILES_DIR, filename))
+        with open(os.path.join(settings.FILES_DIR, filename), "wb") as f:
+            f.write(file.read())
 
     def delete(self, filename):
         path = os.path.join(settings.FILES_DIR, filename)

@@ -191,6 +191,8 @@ def upload_file():
         if storage.exists(output_filename):
             raise CollisionError
         if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPE:
+            # We need a BufferedReader to be able to save the file to the storage provider
+            file = open(tmp_filepath, "rb")
             storage.save(file, output_filename)
             os.remove(tmp_filepath)
         else:
