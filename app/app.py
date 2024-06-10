@@ -1,4 +1,5 @@
 import datetime
+import logging
 import mimetypes
 import time
 import glob
@@ -21,26 +22,37 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 import settings
 
-print("imgpush is starting...")
+level = logging.INFO
+if os.getenv("DEBUG", "0") == "1":
+    level = logging.DEBUG
+
+logging.basicConfig(
+    level=level, format="%(asctime)s | %(levelname)-8s %(name)-13s > %(message)s"
+)
+
+logger = logging.getLogger(__name__)
+
+logger.info("imgpush is starting...")
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
-print("-" * 40)
+logger.info("-" * 40)
 
 storage = get_storage()
-print("Using storage: %s" % storage.__class__.__name__)
-print(storage)
+logger.info("Using storage: %s" % storage.__class__.__name__)
+logger.info(storage)
 
-print("-" * 40)
+logger.info("-" * 40)
 
 CORS(app, origins=settings.ALLOWED_ORIGINS)
 app.config["MAX_CONTENT_LENGTH"] = settings.MAX_SIZE_MB * 1024 * 1024
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
 
-print("imgpush is listening on port 5000!")
+logger.info("imgpush is listening on port 5000!")
 
 app.use_x_sendfile = True
+
 
 @app.after_request
 def after_request(resp):
@@ -55,11 +67,14 @@ def after_request(resp):
 class InvalidSize(Exception):
     pass
 
+
 class CollisionError(Exception):
     pass
 
+
 class InvalidFileTypeError(Exception):
     pass
+
 
 def _get_size_from_string(size):
     try:
@@ -80,7 +95,8 @@ def _clear_imagemagick_temp_files():
     imagemagick_temp_files = glob.glob("/tmp/magick-*")
     for filepath in imagemagick_temp_files:
         modified = datetime.datetime.strptime(
-            time.ctime(os.path.getmtime(filepath)), "%a %b %d %H:%M:%S %Y",
+            time.ctime(os.path.getmtime(filepath)),
+            "%a %b %d %H:%M:%S %Y",
         )
         diff = datetime.datetime.now() - modified
         seconds = diff.seconds
@@ -134,7 +150,10 @@ def _resize_image(path, width, height):
     else:
         newwidth = int(img.height * desired_aspect_ratio)
         img.crop(
-            int((img.width / 2) - (newwidth / 2)), 0, width=newwidth, height=img.height,
+            int((img.width / 2) - (newwidth / 2)),
+            0,
+            width=newwidth,
+            height=img.height,
         )
 
     @timeout_decorator.timeout(settings.RESIZE_TIMEOUT)
@@ -148,9 +167,11 @@ def _resize_image(path, width, height):
 
     return img
 
+
 @app.route("/liveness", methods=["GET"])
 def liveness():
     return Response(status=200)
+
 
 @app.route("/", methods=["POST"])
 @limiter.limit(
@@ -208,7 +229,7 @@ def upload_file():
                 else:
                     with img.convert(output_type) as converted:
                         converted.save(filename=converted_file_path)
-            
+
             converted_file = open(converted_file_path, "rb")
             storage.save(converted_file, output_filename)
             # After saving the converted file on the storage provider, we can delete the temporary file from the filesystem
@@ -225,12 +246,13 @@ def upload_file():
 
     return jsonify(filename=output_filename)
 
+
 @app.route("/<string:filename>", methods=["DELETE"])
 @limiter.exempt
 def delete_image(filename):
-    # check the name looks like a filename and 
+    # check the name looks like a filename and
     # need some more protection
-    if(filename) and (re.match("^[\w\d-]+\.[\w\d]+$", filename)):
+    if (filename) and (re.match("^[\w\d-]+\.[\w\d]+$", filename)):
         storage.delete(filename)
     return Response(status=200)
 
@@ -247,7 +269,7 @@ def get_file(filename):
     if file_type is None:
         response = jsonify(error="File type could not be determined!"), 500
         return response
-    
+
     width = request.args.get("w", "")
     height = request.args.get("h", "")
 
@@ -266,7 +288,7 @@ def get_file(filename):
         response = get_or_create_resized_image(filename, width, height)
         apply_cache(response)
         return response
-    
+
     # If the file type is not resizable, or the user is not asking for a resized version
     # We serve the file directly
     tmp_filepath, delete_temporary_file = storage.get(filename)
@@ -277,9 +299,11 @@ def get_file(filename):
     apply_cache(response)
     return response
 
+
 def apply_cache(response):
     response.headers["Cache-Control"] = f"public, max-age={60*60}"
     response.headers["Expires"] = f"{60*60}"
+
 
 def get_or_create_resized_image(filename, width, height):
     filename_without_extension, extension_with_dot = os.path.splitext(filename)
@@ -298,16 +322,18 @@ def get_or_create_resized_image(filename, width, height):
 
         resized_image = _resize_image(tmp_filepath, width, height)
         resized_image.strip()
-        
+
         resized_image.save(filename=resized_path)
         resized_image.close()
-        
+
         delete_temporary_file()
         return send_file(resized_path)
+
 
 @app.route("/metrics", methods=["GET"])
 def metrics():
     return storage.get_metrics()
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, threaded=True)
