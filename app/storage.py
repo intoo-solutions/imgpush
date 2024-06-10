@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import mimetypes
 import time
 import filetype
@@ -8,6 +9,9 @@ import subprocess
 import boto3
 from abc import ABC, abstractmethod
 import settings
+
+logger = logging.getLogger(__name__)
+
 
 class Storage(ABC):
     @abstractmethod
@@ -38,6 +42,7 @@ class Storage(ABC):
         """
         pass
 
+
 class FileSystemStorage(Storage):
     def save(self, file, filename):
         with open(os.path.join(settings.FILES_DIR, filename), "wb") as f:
@@ -62,10 +67,24 @@ class FileSystemStorage(Storage):
         for mime_type in settings.ALLOWED_MIME_FILE_TYPES:
             extension = mimetypes.guess_extension(mime_type)
             if extension:
-                extension = extension[1:] # remove dot from extension
-                ps = subprocess.Popen(f"find {settings.FILES_DIR} -type f -name '*.{extension}' | wc -l", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-                nbfiles = ps.communicate()[0].split()[0].decode('utf-8')
-                size = subprocess.check_output([f'du -c {settings.FILES_DIR}/*.{extension} | tail -n 1 | cut -f 1'], shell=True).decode('utf-8').strip()
+                extension = extension[1:]  # remove dot from extension
+                ps = subprocess.Popen(
+                    f"find {settings.FILES_DIR} -type f -name '*.{extension}' | wc -l",
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                )
+                nbfiles = ps.communicate()[0].split()[0].decode("utf-8")
+                size = (
+                    subprocess.check_output(
+                        [
+                            f"du -c {settings.FILES_DIR}/*.{extension} | tail -n 1 | cut -f 1"
+                        ],
+                        shell=True,
+                    )
+                    .decode("utf-8")
+                    .strip()
+                )
                 metrics[mime_type] = {"count": nbfiles, "size": size}
 
         metrics_str = ""
@@ -85,35 +104,40 @@ class FileSystemStorage(Storage):
         metrics_str += f'last_execution_time_in_milliseconds{{service="imgpush-metrics-rebuilder", directory="{settings.FILES_DIR}"}} {total_time}\n'
 
         return metrics_str
-    
+
     def __str__(self) -> str:
         return "Directory = %s" % settings.FILES_DIR
 
 
 class S3Storage(Storage):
     def __init__(self):
-        self.s3 = boto3.client('s3', 
-            endpoint_url = settings.S3_ENDPOINT,
+        self.s3 = boto3.client(
+            "s3",
+            endpoint_url=settings.S3_ENDPOINT,
             aws_access_key_id=settings.S3_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY
+            aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
         )
 
     def save(self, file, filename):
         file_size = file.seek(0, os.SEEK_END)
-        file.seek(0)  # Reset the file pointer to the beginning to allow S3 to read the file
+        file.seek(
+            0
+        )  # Reset the file pointer to the beginning to allow S3 to read the file
 
         mime_type = filetype.guess(file).mime
 
         self.s3.upload_fileobj(file, settings.S3_BUCKET_NAME, filename)
         update_metrics(file_size, mime_type)
-        
+
     def delete(self, filename):
         try:
             # If the file does not exist, head_object will raise an exception
-            object_info = self.s3.head_object(Bucket=settings.S3_BUCKET_NAME, Key=filename)
+            object_info = self.s3.head_object(
+                Bucket=settings.S3_BUCKET_NAME, Key=filename
+            )
         except:
             return
-        
+
         file_size, mime_type = object_info["ContentLength"], object_info["ContentType"]
 
         self.s3.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=filename)
@@ -135,18 +159,22 @@ class S3Storage(Storage):
         self.s3.download_file(settings.S3_BUCKET_NAME, filename, tmp_path)
 
         return tmp_path, lambda: os.remove(tmp_path)
-    
+
     def get_metrics(self):
         metrics_file = get_or_create_metrics_file()
         metrics = json.load(metrics_file)
 
-        last_execution_date = metrics.get("last_execution_date", datetime.datetime.now().isoformat())
-        last_execution_time_in_milliseconds = metrics.get("last_execution_time_in_milliseconds", 0)
+        last_execution_date = metrics.get(
+            "last_execution_date", datetime.datetime.now().isoformat()
+        )
+        last_execution_time_in_milliseconds = metrics.get(
+            "last_execution_time_in_milliseconds", 0
+        )
 
         metrics_str = ""
         for mime_type in settings.ALLOWED_MIME_FILE_TYPES:
             data = metrics.get(mime_type, {"count": 0, "total_size": 0})
-            
+
             count = data["count"]
             total_size_in_kilobytes = int(data["total_size"] / 1024)
             extension = mimetypes.guess_extension(mime_type)
@@ -160,26 +188,34 @@ class S3Storage(Storage):
         return metrics_str
 
     def __str__(self) -> str:
-        return "Endpoint = %s\nBucket name = %s" % (settings.S3_ENDPOINT, settings.S3_BUCKET_NAME)
+        return "Endpoint = %s\nBucket name = %s" % (
+            settings.S3_ENDPOINT,
+            settings.S3_BUCKET_NAME,
+        )
+
 
 def get_storage():
     if settings.S3_ENDPOINT is not None and settings.S3_ENDPOINT != "":
         return S3Storage()
     else:
         return FileSystemStorage()
-    
+
+
 def get_or_create_metrics_file():
     # Create the metrics folder if it does not exist
     if not os.path.exists(os.path.dirname(settings.METRICS_FILE_PATH)):
         os.makedirs(os.path.dirname(settings.METRICS_FILE_PATH))
-        print(f"[Metrics] Directory {os.path.dirname(settings.METRICS_FILE_PATH)} does not exist. Creating it.")
-        
+        logger.info(
+            f"Directory {os.path.dirname(settings.METRICS_FILE_PATH)} does not exist. Creating it."
+        )
+
     # Create the metrics file if it does not exist
     if not os.path.exists(settings.METRICS_FILE_PATH):
-        print(f"[Metrics] File {settings.METRICS_FILE_PATH} does not exist. Creating it.")
-        open(settings.METRICS_FILE_PATH, 'w').write('{}')
+        logger.info(f"File {settings.METRICS_FILE_PATH} does not exist. Creating it.")
+        open(settings.METRICS_FILE_PATH, "w").write("{}")
 
     return open(settings.METRICS_FILE_PATH)
+
 
 def update_metrics(file_size, mime_type, remove=False):
     try:
@@ -199,9 +235,9 @@ def update_metrics(file_size, mime_type, remove=False):
 
         metrics_file.close()
 
-        metrics_file = open(settings.METRICS_FILE_PATH, 'w')
+        metrics_file = open(settings.METRICS_FILE_PATH, "w")
         json.dump(metrics, metrics_file)
         metrics_file.close()
     except Exception as e:
-        print(f"[Metrics] Error updating metrics: {e}")
+        logger.info(f"Error updating metrics: {e}")
         return
