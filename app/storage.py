@@ -221,7 +221,7 @@ class S3Storage(Storage):
         )
 
     def validate_configuration(self):
-        # Check that the bucket exists
+        # Check that the bucket exists, that credentials are correct, that the provided endpoint is valid, etc.
         try:
             self.s3.list_objects_v2(Bucket=settings.S3_BUCKET_NAME)
         except Exception as e:
