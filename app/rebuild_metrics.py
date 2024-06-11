@@ -118,9 +118,9 @@ metrics["last_execution_time_in_milliseconds"] = int(total_time * 1000)
 metrics["last_execution_date"] = datetime.datetime.now().isoformat()
 
 logger.info(
-    f"Metrics rebuilt in {total_time:.2f}s (average of {average_time:.2f}s per object)"
+    f"Metrics rebuilt in {total_time:.2f}s (average of {average_time:.4f}s per object)"
 )
-logger.info("Saving file metrics.json...")
+logger.info(f"Saving file to {settings.METRICS_FILE_PATH}")
 
 import json
 
