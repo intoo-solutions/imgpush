@@ -42,6 +42,13 @@ class Storage(ABC):
         """
         pass
 
+    @abstractmethod
+    def validate_configuration(self):
+        """
+        Check that the configuration is valid for the storage provider
+        """
+        pass
+
 
 class FileSystemStorage(Storage):
     def save(self, file, filename):
@@ -108,6 +115,14 @@ class FileSystemStorage(Storage):
     def __str__(self) -> str:
         return "Directory = %s" % settings.FILES_DIR
 
+    def validate_configuration(self):
+        if not os.path.exists(settings.FILES_DIR):
+            logger.warn(f"Directory {settings.FILES_DIR} does not exist. Creating it.")
+            os.makedirs(settings.FILES_DIR)
+        if not os.path.exists(settings.CACHE_DIR):
+            logger.warn(f"Directory {settings.CACHE_DIR} does not exist. Creating it.")
+            os.makedirs(settings.CACHE_DIR)
+
 
 class S3Storage(Storage):
     def __init__(self):
@@ -117,6 +132,16 @@ class S3Storage(Storage):
             aws_access_key_id=settings.S3_ACCESS_KEY_ID,
             aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
         )
+
+        # Check that the settings are correct
+        # The endpoint should be valid
+        # The bucket should exist
+        # The credentials should be valid
+        try:
+            self.s3.list_objects_v2(Bucket=settings.S3_BUCKET_NAME)
+        except Exception as e:
+            logger.error(f"Error connecting to S3: {e}")
+            exit(1)
 
     def save(self, file, filename):
         file_size = file.seek(0, os.SEEK_END)
@@ -145,7 +170,9 @@ class S3Storage(Storage):
 
     def exists(self, filename):
         try:
-            self.s3.head_object(Bucket=settings.S3_BUCKET_NAME, Key=build_path(filename))
+            self.s3.head_object(
+                Bucket=settings.S3_BUCKET_NAME, Key=build_path(filename)
+            )
             return True
         except:
             return False
@@ -192,6 +219,14 @@ class S3Storage(Storage):
             settings.S3_ENDPOINT,
             settings.S3_BUCKET_NAME,
         )
+
+    def validate_configuration(self):
+        # Check that the bucket exists
+        try:
+            self.s3.list_objects_v2(Bucket=settings.S3_BUCKET_NAME)
+        except Exception as e:
+            logger.error(f"Error connecting to S3: {e}")
+            raise ValueError("Error connecting to S3")
 
 
 def get_storage():
