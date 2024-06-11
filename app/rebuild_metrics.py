@@ -3,10 +3,12 @@ import datetime
 import logging
 import time
 import concurrent.futures
-from storage import get_storage
+from storage import S3Storage, get_storage
 import settings
 from collections import defaultdict
 from threading import Lock
+
+import settings
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -21,6 +23,8 @@ storage = get_storage()
 if storage.__class__.__name__ == "FileSystemStorage":
     logger.error("Cannot rebuild metrics with FileSystemStorage")
     exit(1)
+
+storage: S3Storage = storage
 
 logger.info("Rebuilding from S3 bucket")
 for line in storage.__str__().split("\n"):
@@ -56,13 +60,17 @@ lock = Lock()
 
 # Fetch all objects from the S3 bucket
 all_objects = []
-paginator = storage.s3.get_paginator("list_objects")
+paginator = storage.s3.get_paginator("list_objects_v2")
 start_time = time.time()
 
 logger.info("Fetching all objects from S3 bucket...")
 
 try:
-    for index, page in enumerate(paginator.paginate(Bucket=settings.S3_BUCKET_NAME)):
+    for index, page in enumerate(
+        paginator.paginate(
+            Bucket=settings.S3_BUCKET_NAME, Prefix=settings.S3_FOLDER_NAME
+        )
+    ):
         try:
             page_content = page["Contents"]
             object_count = len(page_content)
@@ -78,10 +86,10 @@ except Exception as e:
     exit(1)
 
 try:
-    thread_count = int(os.getenv("S3_METRICS_REBUILDER_THREAD_COUNT", 4))
+    thread_count = int(settings.S3_METRICS_REBUILDER_THREAD_COUNT)
 except ValueError:
     logger.error(
-        "THREAD_COUNT environment variable is not a valid integer, defaulting to 4"
+        "S3_METRICS_REBUILDER_THREAD_COUNT environment variable is not a valid integer, defaulting to 4"
     )
     thread_count = 4
 

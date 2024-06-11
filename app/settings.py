@@ -10,6 +10,7 @@ S3_ACCESS_KEY_ID = ""
 S3_SECRET_ACCESS_KEY = ""
 S3_BUCKET_NAME = ""
 S3_FOLDER_NAME = ""
+S3_METRICS_REBUILDER_THREAD_COUNT = 4
 
 # The directory in which to store the files
 FILES_DIR = "/files/"

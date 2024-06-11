@@ -126,26 +126,26 @@ class S3Storage(Storage):
 
         mime_type = filetype.guess(file).mime
 
-        self.s3.upload_fileobj(file, settings.S3_BUCKET_NAME, filename)
+        self.s3.upload_fileobj(file, settings.S3_BUCKET_NAME, build_path(filename))
         update_metrics(file_size, mime_type)
 
     def delete(self, filename):
         try:
             # If the file does not exist, head_object will raise an exception
             object_info = self.s3.head_object(
-                Bucket=settings.S3_BUCKET_NAME, Key=filename
+                Bucket=settings.S3_BUCKET_NAME, Key=build_path(filename)
             )
         except:
             return
 
         file_size, mime_type = object_info["ContentLength"], object_info["ContentType"]
 
-        self.s3.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=filename)
+        self.s3.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=build_path(filename))
         update_metrics(file_size, mime_type, remove=True)
 
     def exists(self, filename):
         try:
-            self.s3.head_object(Bucket=settings.S3_BUCKET_NAME, Key=filename)
+            self.s3.head_object(Bucket=settings.S3_BUCKET_NAME, Key=build_path(filename))
             return True
         except:
             return False
@@ -156,7 +156,7 @@ class S3Storage(Storage):
         and return the path to the file, as well as a function to delete the file
         """
         tmp_path = f"/tmp/{filename}"
-        self.s3.download_file(settings.S3_BUCKET_NAME, filename, tmp_path)
+        self.s3.download_file(settings.S3_BUCKET_NAME, build_path(filename), tmp_path)
 
         return tmp_path, lambda: os.remove(tmp_path)
 
@@ -199,6 +199,10 @@ def get_storage():
         return S3Storage()
     else:
         return FileSystemStorage()
+
+
+def build_path(filename):
+    return os.path.join(settings.S3_FOLDER_NAME, filename)
 
 
 def get_or_create_metrics_file():
