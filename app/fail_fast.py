@@ -49,5 +49,4 @@ if __name__ == "__main__":
     storage_provider = storage.get_storage()
     storage_provider.validate_configuration()
 
-    logger.info("Configuration is valid")
     exit(0)
