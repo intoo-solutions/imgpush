@@ -95,7 +95,7 @@ imgpush requires docker to run. You can start the service by running the followi
 ### Using the file system
 
 ```bash
-docker run -v <PATH TO STORE IMAGES>:/images -p 5000:5000 intoo/imgpush:latest
+docker run -v <PATH TO STORE FILES>:/files -p 5000:5000 intoo/imgpush:latest
 ```
 
 ### Using S3
@@ -169,7 +169,7 @@ imgpush   ClusterIP   10.10.10.41   <none>        5000/TCP   3m57s
 ```
 
 5. When the deployment is finished, the READY column should be `1/1`.
-6. Afterwards you can forward the port to your local machine and upload an image via your webbrowser (visit http://127.0.0.1:5000/).
+6. Afterwards you can forward the port to your local machine and upload a file via your webbrowser (visit http://127.0.0.1:5000/).
 
 ```
 $ kubectl -n imgpush port-forward service/imgpush 5000
