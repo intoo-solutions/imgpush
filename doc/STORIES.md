@@ -10,7 +10,7 @@ Ce document comporte un ensemble de stories (aussi bien du point de vue de l'éd
 
 ## 💻📦 Stories côté éditeur
 
-### 1️⃣ US-1 - Je dois maîtriser mes coûts
+### 1️⃣ US-1 - Je dois maîtriser mes coûts ✅
 
 **En tant qu**'éditeur & hébergeur de la solution Follo
 
@@ -18,7 +18,7 @@ Ce document comporte un ensemble de stories (aussi bien du point de vue de l'éd
 
 **Afin de** maîtriser mes coûts quand le volume va augmenter
 
-### 2️⃣ US-2 - Je dois m'intégrer à Seculib
+### 2️⃣ US-2 - Je dois m'intégrer à Seculib ✅
 
 **En tant qu**'éditeur & hébergeur de la solution imgpush qui va être intégrée dans Seculib
 
@@ -28,7 +28,7 @@ Ce document comporte un ensemble de stories (aussi bien du point de vue de l'éd
 
 > C'est un peu la même que l'US-1, mais là j'y rajoute les enjeux Seculib, qui sera pas déployé comme Follo. En gros ça veut dire qu'on doit utiliser un service cloud
 
-### 3️⃣ US-3 - Refacturation
+### 3️⃣ US-3 - Refacturation ✅
 
 **En tant qu**'utilisateur de la solution imgpush
 
@@ -36,7 +36,7 @@ Ce document comporte un ensemble de stories (aussi bien du point de vue de l'éd
 
 **Afin de** pouvoir éventuellement refacturer à mon client
 
-### 4️⃣ US-4 - Monitoring
+### 4️⃣ US-4 - Monitoring ✅
 
 **En tant qu**'utilisateur de la solution imgpush
 
@@ -48,7 +48,7 @@ Ce document comporte un ensemble de stories (aussi bien du point de vue de l'éd
 
 > Vendredi 16h, je dois pouvoir vérifier que ça va pas atteindre un quota dans les prochaines 24 heures parce que dans 24h je serais à la plage
 
-### 5️⃣ US-5 - Flexibilité
+### 5️⃣ US-5 - Flexibilité ✅
 
 **En tant qu**'éditeur de la solution imgpush
 
@@ -56,7 +56,7 @@ Ce document comporte un ensemble de stories (aussi bien du point de vue de l'éd
 
 **Afin d**'être flexible et de répondre aux besoin de développement local et des clients (un client qui choisirait de ne pas utiliser AWS S3 car c'est américain)
 
-### 6️⃣ US-6 - Fail fast
+### 6️⃣ US-6 - Fail fast ✅
 
 **En tant qu**'utilisateur de la solution imgpush
 
@@ -66,7 +66,7 @@ Ce document comporte un ensemble de stories (aussi bien du point de vue de l'éd
 
 ## 🧑‍🦱👩‍🦱 Stories côté utilisateur
 
-### 7️⃣ US-7 - Proxy
+### 7️⃣ US-7 - Proxy ✅
 
 **En tant qu**'utilisateur parano,
 
@@ -78,7 +78,7 @@ Ce document comporte un ensemble de stories (aussi bien du point de vue de l'éd
 >
 > Proxifier la récupération des fichiers
 
-### 8️⃣ US-8 - Redimensionnement
+### 8️⃣ US-8 - Redimensionnement ✅
 
 **En tant qu**'utilisateur,
 
@@ -90,7 +90,7 @@ Ce document comporte un ensemble de stories (aussi bien du point de vue de l'éd
 >
 > Proposer de redimensionner les images à la volée à l'aide de query params
 
-### 9️⃣ US-9 - Je dois pouvoir migrer
+### 9️⃣ US-9 - Je dois pouvoir migrer ✅
 
 **En tant qu**'utilisateur de la solution imgpush actuelle
 
@@ -98,7 +98,7 @@ Ce document comporte un ensemble de stories (aussi bien du point de vue de l'éd
 
 **Afin de** migrer sans problèmes, ni pertes, ni doutes
 
-### 1️⃣0️⃣ US-10 - Je dois configurer et documenter
+### 1️⃣0️⃣ US-10 - Je dois configurer et documenter ⌛
 
 **En tant qu**'utilisateur de la solution imgpush
 
@@ -116,7 +116,7 @@ Ce document comporte un ensemble de stories (aussi bien du point de vue de l'éd
 
 > On ne commit pas les credentials du bucket prod
 
-### 1️⃣1️⃣ US-11 - Je dois pouvoir supprimer mes données
+### 1️⃣1️⃣ US-11 - Je dois être paré légalement
 
 **En tant que** plateforme de mise en relation
 

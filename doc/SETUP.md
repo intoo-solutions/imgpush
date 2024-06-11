@@ -84,9 +84,7 @@ services:
       - <votre dossier>:<chemin donné à FILES_DIR> # Exemple: ./files:/files
 ```
 
-### ❇️ Variables d'environnement
-
-[Les variables d'environnement suivantes sont disponibles pour configurer imgpush](../README.md#configuration)
+### ❇️ Principales variables d'environnement
 
 Parmi les plus importantes que l'on ne retrouve pas dans l'exemple de Docker Compose ci-dessus, on peut citer :
 
@@ -97,3 +95,7 @@ Parmi les plus importantes que l'on ne retrouve pas dans l'exemple de Docker Com
 | NAME_STRATEGY           | Stratégie de nommage des fichiers uploadés (`randomstr`, ou `uuidv4`) |
 | METRICS_FILE_PATH       | Chemin d'accès au fichier de métriques                                |
 | OUTPUT_TYPE             | Format vers lequel convertir les images uploadées                     |
+
+#### 🗒️ Liste complète des variables d'environnement
+
+[Les variables d'environnement suivantes sont disponibles pour configurer imgpush](../README.md#configuration)
