@@ -1,3 +1,4 @@
+import mimetypes
 import os
 import datetime
 import logging
@@ -41,11 +42,8 @@ def process_object(object, metrics, lock):
         if filename.endswith("/"):
             return
 
-        object_info = storage.s3.head_object(
-            Key=filename, Bucket=settings.S3_BUCKET_NAME
-        )
-
-        mime_type = object_info.get("ContentType", "others")
+        file_extension = filename.split(".")[-1]
+        mime_type = mimetypes.types_map.get(f".{file_extension}", "others")
 
         # Update the metrics
         with lock:
