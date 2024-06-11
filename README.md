@@ -107,28 +107,8 @@ docker run -e S3_ENDPOINT=https://my-s3:9000 -e S3_ACCESS_KEY_ID=accesskey -e S3
 If you are using S3, you need to also start the metrics-rebuilder, which takes care of building the metrics file from an existing bucket. This is only needed if you plan on using the `/metrics` endpoint.
 
 ```bash
-docker run -e REBUILD_METRICS=true -e S3_ENDPOINT=https://my-s3:9000 -e S3_ACCESS_KEY_ID=accesskey -e S3_SECRET_ACCESS_KEY=secretkey -e S3_BUCKET_NAME=mybucket intoo/imgpush:latest -v <PATH TO STORE METRICS FILE>:/metrics -e THREAD_COUNT=<NUMBER OF THREADS>
+docker run -e REBUILD_METRICS=true -e S3_ENDPOINT=https://my-s3:9000 -e S3_ACCESS_KEY_ID=accesskey -e S3_SECRET_ACCESS_KEY=secretkey -e S3_BUCKET_NAME=mybucket intoo/imgpush:latest -v <PATH TO STORE METRICS FILE>:/metrics
 ```
-
-#### How many threads should I use?
-
-Here are the benchmark results on the metrics rebuilder, on a bucket containing 6000 files.
-
-Note: This test was run on an AMD Ryzen 5900X processor
-
-| Thread count | Execution time (in seconds) | Gain vs previous | Speedup | Efficiency |
-| ------------ | --------------------------- | ---------------- | ------- | ---------- |
-| 2            | 198.63                      | NaN              | 2.00    | 1.00       |
-| 4            | 99.91                       | 98.72            | 3.98    | 0.99       |
-| 8            | 52.59                       | 47.32            | 7.55    | 0.94       |
-| 12           | 35.32                       | 17.27            | 11.25   | 0.94       |
-| 16           | 28.33                       | 6.99             | 14.02   | 0.88       |
-| 24           | 19.62                       | 8.71             | 20.25   | 0.84       |
-| 32           | 16.26                       | 3.36             | 24.43   | 0.76       |
-| 64           | 15.67                       | 0.59             | 25.35   | 0.40       |
-
-> [!TIP]
-> The more threads you use, the faster the rebuilder will run. However, the performance gain diminishes as you increase the number of threads. The optimal number of threads is around 24. Also, note that the biggest bottleneck is the S3 API, so the performance gain will be less noticeable on a slower network.
 
 ### Kubernetes
 

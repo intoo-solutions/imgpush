@@ -3,11 +3,9 @@ import os
 import datetime
 import logging
 import time
-import concurrent.futures
 from storage import S3Storage, get_storage
 import settings
 from collections import defaultdict
-from threading import Lock
 
 import settings
 
@@ -33,7 +31,7 @@ for line in storage.__str__().split("\n"):
 
 
 # The method that will process each object
-def process_object(object, metrics, lock):
+def process_object(object, metrics):
     try:
         filename = object["Key"]
         size = object["Size"]
@@ -46,15 +44,13 @@ def process_object(object, metrics, lock):
         mime_type = mimetypes.types_map.get(f".{file_extension}", "others")
 
         # Update the metrics
-        with lock:
-            metrics[mime_type]["count"] += 1
-            metrics[mime_type]["total_size"] += size
+        metrics[mime_type]["count"] += 1
+        metrics[mime_type]["total_size"] += size
     except Exception as e:
         logger.error(f"Error processing object {object['Key']}: {str(e)}")
 
 
 metrics = defaultdict(lambda: {"count": 0, "total_size": 0})
-lock = Lock()
 
 # Fetch all objects from the S3 bucket
 all_objects = []
@@ -83,36 +79,12 @@ except Exception as e:
     logger.error(f"Error listing objects: {str(e)}")
     exit(1)
 
-try:
-    thread_count = int(settings.S3_METRICS_REBUILDER_THREAD_COUNT)
-except ValueError:
-    logger.error(
-        "S3_METRICS_REBUILDER_THREAD_COUNT environment variable is not a valid integer, defaulting to 4"
-    )
-    thread_count = 4
-
-logger.info(
-    f"Got {len(all_objects)} objects to process. Starting {thread_count} threads!"
-)
+logger.info(f"Got {len(all_objects)} objects to process. Calculating metrics now")
 
 # Process the objects
 last_time = time.time()
-with concurrent.futures.ThreadPoolExecutor(thread_count) as executor:
-    for i, _ in enumerate(
-        executor.map(
-            process_object,
-            all_objects,
-            [metrics] * len(all_objects),
-            [lock] * len(all_objects),
-        )
-    ):
-        now = time.time()
-        if now - last_time > 5:
-            logger.info(
-                f"Progress: {i}/{len(all_objects)} ({i / len(all_objects) * 100:.2f}%)"
-            )
-            last_time = now
-
+for object in all_objects:
+    process_object(object, metrics)
 end_time = time.time()
 
 # Calculate time metrics
