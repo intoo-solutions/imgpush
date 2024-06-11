@@ -27,7 +27,9 @@ To start the service, run:
 wsl -e docker compose up
 ```
 
-## Import files to S3
+## Import files
+
+### Using AWS CLI (only works with AWS S3)
 
 If you want to migrate from using the file system to S3, you can use the AWS CLI to copy the files to S3. The command to copy the files is:
 
@@ -35,7 +37,37 @@ If you want to migrate from using the file system to S3, you can use the AWS CLI
 aws s3 cp SOURCE_DIR s3://DEST_BUCKET/ --recursive
 ```
 
-Full documentation: https://docs.aws.amazon.com/cli/latest/reference/s3/cp.html
+### Using rclone
+
+If you are using another provider than AWS, using the AWS CLI is not an option. In this case, you can use `rclone` to copy the files to your provider.
+
+#### Configuring rclone
+
+First, you will need to configure rclone to use your provider. You can do this by running:
+
+```bash
+rclone config
+```
+
+This will open a wizard that will guide you through the configuration process.
+Some providers may require additional configuration, or specific options. You will find more information on their documentation. For example, Cloudflare R2 has [this documentation page](https://developers.cloudflare.com/r2/examples/rclone/) that explains how to configure rclone for Cloudflare R2.
+
+#### Copying the files
+
+Then, you can copy the files using the following command:
+
+```bash
+rclone copy SOURCE_DIR PROVIDER_NAME:PATH
+```
+
+For example, if you're using R2 and added a configuration named `r2`, you can copy the files using:
+
+```bash
+rclone copy /path/to/file r2:/bucket-name/subfolder --recursive # for Cloudflare R2
+```
+
+> [!WARNING]  
+> Only append `/bucket-name` if the endpoint you configured in rclone doesn't already contain it. If it does, you should remove it from the path, as it would otherwise create a subfolder with the bucket name inside of your bucket.
 
 ## Usage
 
