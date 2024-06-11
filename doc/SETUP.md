@@ -50,10 +50,12 @@ services:
     volumes:
       - imgpush-metrics:/metrics
 
+  # Ce service va démarrer, reconstruire les métriques à partir d'un bucket S3, les stocker dans un fichier dans le volume imgpush-metrics, puis s'arrêter
   imgpush-metrics-rebuilder:
     image: intoo/imgpush:0.2.0 # Remplacer par la dernière version
     environment:
       - REBUILD_METRICS=true
+      - S3_METRICS_REBUILDER_THREAD_COUNT=<nombre de threads à utiliser pour la reconstruction des métriques> # 4 par défaut
       - S3_ENDPOINT=<votre URL S3>
       - S3_ACCESS_KEY_ID=<votre access key>
       - S3_SECRET_ACCESS_KEY=<votre secret key>
