@@ -12,7 +12,7 @@ S3_BUCKET_NAME = ""
 S3_FOLDER_NAME = ""
 
 # The directory in which to store the files
-FILES_DIR = "/files/"
+FILES_DIR = None
 # The directory in which to store "cached" resized imges
 CACHE_DIR = "/cache/"
 # This is the path to the metrics file, used by the metrics endpoint for the S3Storage class
