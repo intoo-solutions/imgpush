@@ -116,12 +116,31 @@ class FileSystemStorage(Storage):
         return "Directory = %s" % settings.FILES_DIR
 
     def validate_configuration(self):
-        if not os.path.exists(settings.FILES_DIR):
-            logger.warn(f"Directory {settings.FILES_DIR} does not exist. Creating it.")
-            os.makedirs(settings.FILES_DIR)
-        if not os.path.exists(settings.CACHE_DIR):
-            logger.warn(f"Directory {settings.CACHE_DIR} does not exist. Creating it.")
-            os.makedirs(settings.CACHE_DIR)
+        try:
+            if not os.path.exists(settings.FILES_DIR):
+                logger.warn(
+                    f"Directory {settings.FILES_DIR} does not exist. Creating it."
+                )
+                os.makedirs(settings.FILES_DIR)
+            if not os.path.exists(settings.CACHE_DIR):
+                logger.warn(
+                    f"Directory {settings.CACHE_DIR} does not exist. Creating it."
+                )
+                os.makedirs(settings.CACHE_DIR)
+        except Exception as e:
+            logger.error(f"Error creating directories: {e}")
+            raise ValueError("Error creating directories")
+
+        is_writable = os.access(settings.FILES_DIR, os.W_OK)
+        is_cache_writable = os.access(settings.CACHE_DIR, os.W_OK)
+
+        if not is_writable or not is_cache_writable:
+            logger.error(
+                f"Directory {'FILES_DIR' if not is_writable else 'CACHE_DIR'} is not writable"
+            )
+            raise ValueError(
+                f"Directory {'FILES_DIR' if not is_writable else 'CACHE_DIR'} is not writable"
+            )
 
 
 class S3Storage(Storage):
