@@ -211,7 +211,7 @@ def upload_file():
             raise InvalidFileTypeError
         if storage.exists(output_filename):
             raise CollisionError
-        if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPE:
+        if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPES:
             # We need a BufferedReader to be able to save the file to the storage provider
             file = open(tmp_filepath, "rb")
             storage.save(file, output_filename)
@@ -275,7 +275,7 @@ def get_file(filename):
 
     # If the file type is resizable and the user is asking for a resized version
     # we first check if it is cached before downloading the file
-    if mime_type in settings.RESIZABLE_MIME_FILE_TYPE and (width or height):
+    if mime_type in settings.RESIZABLE_MIME_FILE_TYPES and (width or height):
         try:
             width = _get_size_from_string(width)
             height = _get_size_from_string(height)

@@ -18,7 +18,7 @@ CACHE_DIR = "/cache/"
 # This is the path to the metrics file, used by the metrics endpoint for the S3Storage class
 METRICS_FILE_PATH = "/metrics/metrics.json"
 # Convert the files to this type when uploading
-# NOTE: This will only apply to file extensions from the RESIZABLE_MIME_FILE_TYPE setting
+# NOTE: This will only apply to file extensions from the RESIZABLE_MIME_FILE_TYPES setting
 OUTPUT_TYPE = None
 
 #########################################
@@ -47,7 +47,7 @@ VALID_SIZES = []
 
 # Those files will be treated as images, meaning
 # they will be resized if the query parameters are present
-RESIZABLE_MIME_FILE_TYPE = [
+RESIZABLE_MIME_FILE_TYPES = [
     "image/jpeg",
     "image/png",
     "image/gif",
