@@ -10,6 +10,10 @@ Cette documentation comporte des guides pour la mise en place et l'utilisation d
 
 [🧪 Consulter le guide de mise en place en staging](SETUP_STAGING.md)
 
+## 📰 Lecture des logs
+
+[📰 Consulter le guide de lecture des logs](LOGS.md)
+
 ## 📖 Stories
 
 [Consulter les stories](STORIES.md)

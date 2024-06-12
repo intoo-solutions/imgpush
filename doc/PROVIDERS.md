@@ -29,8 +29,9 @@ Voici un tableau comparatif sommaire représentant les coûts de stockage de don
 | AWS S3 Standard                 | 0,023                        | Frais pour les données transférées en sortie |
 | Azure Blob Storage Chaud        | 0,0184                       | Frais pour les données transférées en sortie |
 | Cloudflare R2                   | 0,015                        | Transfert de données gratuit                 |
-| Backblaze B2                    | 0,005                        | Frais pour les données transférées en sortie |
+| OVH Standard Object Storage     | 0,0084                       | Transfert de données gratuit                 |
 | Wasabi                          | 0,0069                       | Transfert de données gratuit                 |
+| Backblaze B2                    | 0,005                        | Frais pour les données transférées en sortie |
 | Backblaze B2 (combiné avec CDN) | 0,005                        | Transfert de données gratuit                 |
 
 [La liste complète comparant les coûts de chaque provider est disponible ici](https://simplebackups.com/blog/cloud-storage-price-feature-comparison-the-best-providers-in-2023/)
