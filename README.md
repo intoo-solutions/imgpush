@@ -13,20 +13,6 @@ Minimalist Self-hosted File Service for user submitted files in your app (e.g. a
 - Configurable allowed file types
 - Choose between S3 or file system storage
 
-## Local Development
-
-When developing locally, you can use the `docker-compose.yml` file to start the service. This will start the service on port 5000. To configure the service, you can copy the `.env.example` file to `.env` and adjust the settings to your liking.
-
-```bash
-wsl -e cp .env.example .env
-```
-
-To start the service, run:
-
-```bash
-wsl -e docker compose up
-```
-
 ## Import files
 
 ### Using AWS CLI (only works with AWS S3)
