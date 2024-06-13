@@ -13,48 +13,6 @@ Minimalist Self-hosted File Service for user submitted files in your app (e.g. a
 - Configurable allowed file types
 - Choose between S3 or file system storage
 
-## Import files
-
-### Using AWS CLI (only works with AWS S3)
-
-If you want to migrate from using the file system to S3, you can use the AWS CLI to copy the files to S3. The command to copy the files is:
-
-```bash
-aws s3 cp SOURCE_DIR s3://DEST_BUCKET/ --recursive
-```
-
-### Using rclone
-
-If you are using another provider than AWS, using the AWS CLI is not an option. In this case, you can use `rclone` to copy the files to your provider.
-
-#### Configuring rclone
-
-First, you will need to configure rclone to use your provider. You can do this by running:
-
-```bash
-rclone config
-```
-
-This will open a wizard that will guide you through the configuration process.
-Some providers may require additional configuration, or specific options. You will find more information on their documentation. For example, Cloudflare R2 has [this documentation page](https://developers.cloudflare.com/r2/examples/rclone/) that explains how to configure rclone for Cloudflare R2.
-
-#### Copying the files
-
-Then, you can copy the files using the following command:
-
-```bash
-rclone copy SOURCE_DIR PROVIDER_NAME:PATH
-```
-
-For example, if you're using R2 and added a configuration named `r2`, you can copy the files using:
-
-```bash
-rclone copy /path/to/file r2:/bucket-name/subfolder --recursive # for Cloudflare R2
-```
-
-> [!WARNING]  
-> Only append `/bucket-name` if the endpoint you configured in rclone doesn't already contain it. If it does, you should remove it from the path, as it would otherwise create a subfolder with the bucket name inside of your bucket.
-
 ## Usage
 
 Uploading a file:
@@ -175,23 +133,23 @@ livenessProbe:
 
 ## Configuration
 
-| Setting                  | Default value                              | Description                                                                                                                                       |
-| ------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OUTPUT_TYPE              | Same as Input file                         | An image type supported by imagemagick, e.g. png or jpg                                                                                           |
-| MAX_SIZE_MB              | "16"                                       | Integer, Max size per uploaded file in megabytes                                                                                                  |
-| MAX_UPLOADS_PER_DAY      | "1000"                                     | Integer, max per IP address                                                                                                                       |
-| MAX_UPLOADS_PER_HOUR     | "100"                                      | Integer, max per IP address                                                                                                                       |
-| MAX_UPLOADS_PER_MINUTE   | "20"                                       | Integer, max per IP address                                                                                                                       |
-| ALLOWED_ORIGINS          | "['*']"                                    | array of domains, e.g ['https://a.com']                                                                                                           |
-| VALID_SIZES              | Any size                                   | array of integers allowed in the h= and w= parameters, e.g "[100,200,300]". You should set this to protect against being bombarded with requests! |
-| NAME_STRATEGY            | "randomstr"                                | `randomstr` for random 5 chars, `uuidv4` for UUIDv4                                                                                               |
-| ALLOWED_MIME_FILE_TYPES  | "['image/png', 'image/jpeg', 'image/jpg']" | array of allowed file types, e.g. `['image/png', 'image/jpeg', 'image/jpg']`                                                                      |
+| Setting                   | Default value                              | Description                                                                                                                                       |
+| ------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OUTPUT_TYPE               | Same as Input file                         | An image type supported by imagemagick, e.g. png or jpg                                                                                           |
+| MAX_SIZE_MB               | "16"                                       | Integer, Max size per uploaded file in megabytes                                                                                                  |
+| MAX_UPLOADS_PER_DAY       | "1000"                                     | Integer, max per IP address                                                                                                                       |
+| MAX_UPLOADS_PER_HOUR      | "100"                                      | Integer, max per IP address                                                                                                                       |
+| MAX_UPLOADS_PER_MINUTE    | "20"                                       | Integer, max per IP address                                                                                                                       |
+| ALLOWED_ORIGINS           | "['*']"                                    | array of domains, e.g ['https://a.com']                                                                                                           |
+| VALID_SIZES               | Any size                                   | array of integers allowed in the h= and w= parameters, e.g "[100,200,300]". You should set this to protect against being bombarded with requests! |
+| NAME_STRATEGY             | "randomstr"                                | `randomstr` for random 5 chars, `uuidv4` for UUIDv4                                                                                               |
+| ALLOWED_MIME_FILE_TYPES   | "['image/png', 'image/jpeg', 'image/jpg']" | array of allowed file types, e.g. `['image/png', 'image/jpeg', 'image/jpg']`                                                                      |
 | RESIZABLE_MIME_FILE_TYPES | "['image/png', 'image/jpeg', 'image/jpg']" | array of file types that will be treated as images, and therefore resized, e.g. `['image/png', 'image/jpeg', 'image/jpg']`                        |
-| S3_ENDPOINT              | ""                                         | S3 endpoint, e.g. `http://my-s3:9000`                                                                                                             |
-| S3_ACCESS_KEY_ID         | ""                                         | S3 access key identifier                                                                                                                          |
-| S3_SECRET_ACCESS_KEY     | ""                                         | S3 secret access key                                                                                                                              |
-| S3_BUCKET_NAME           | ""                                         | S3 bucket name                                                                                                                                    |
-| METRICS_FILE_PATH        | "/metrics/metrics.json"                    | Path to the file where the metrics are stored (only applicable when using S3)                                                                     |
+| S3_ENDPOINT               | ""                                         | S3 endpoint, e.g. `http://my-s3:9000`                                                                                                             |
+| S3_ACCESS_KEY_ID          | ""                                         | S3 access key identifier                                                                                                                          |
+| S3_SECRET_ACCESS_KEY      | ""                                         | S3 secret access key                                                                                                                              |
+| S3_BUCKET_NAME            | ""                                         | S3 bucket name                                                                                                                                    |
+| METRICS_FILE_PATH         | "/metrics/metrics.json"                    | Path to the file where the metrics are stored (only applicable when using S3)                                                                     |
 
 Setting configuration variables is all set through env variables that get passed to the docker container.
 

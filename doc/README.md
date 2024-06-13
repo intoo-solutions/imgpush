@@ -10,6 +10,10 @@ Cette documentation comporte des guides pour la mise en place et l'utilisation d
 
 [🧪 Consulter le guide de mise en place en staging](SETUP_STAGING.md)
 
+## Migration des données
+
+[🚚 Consulter le guide de migration des données](MIGRATION.md)
+
 ## 💻 Guide pour développeur
 
 [👨‍💻 Consulter le guide pour développeur](DEV.md)
