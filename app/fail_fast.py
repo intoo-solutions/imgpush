@@ -22,11 +22,13 @@ def validate_general_settings():
         raise ValueError("RESIZABLE_MIME_FILE_TYPE must be set")
 
     mime_type_pattern = re.compile(r"^'[^']*'(,'[^']*')*$")
-    print(os.getenv("ALLOWED_MIME_FILE_TYPES"))
-    if not mime_type_pattern.match(os.getenv("ALLOWED_MIME_FILE_TYPES")):
+    allowed_mime_file_types = os.getenv("ALLOWED_MIME_FILE_TYPES") or ""
+    resizable_mime_file_types = os.getenv("RESIZABLE_MIME_FILE_TYPES") or ""
+
+    if not mime_type_pattern.match(allowed_mime_file_types):
         raise ValueError("ALLOWED_MIME_FILE_TYPES must be in the format: 'mime1', 'mime2'")
 
-    if not mime_type_pattern.match(os.getenv("RESIZABLE_MIME_FILE_TYPES")):
+    if not mime_type_pattern.match(resizable_mime_file_types):
         raise ValueError("RESIZABLE_MIME_FILE_TYPE must be in the format: 'mime1', 'mime2'")
     
     # check that all mime types are valid (i.e. they are in mimetypes.types_map or mimetypes.common_types)
