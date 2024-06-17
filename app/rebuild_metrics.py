@@ -93,7 +93,7 @@ average_time = total_time / len(all_objects) if len(all_objects) > 0 else 0
 
 # Storing the metrics
 metrics["last_execution_time_in_milliseconds"] = int(total_time * 1000)
-metrics["last_execution_date"] = datetime.datetime.now().isoformat()
+metrics["last_execution_date"] = int(time.time())
 
 logger.info(
     f"Metrics rebuilt in {total_time:.2f}s (average of {average_time:.4f}s per object)"

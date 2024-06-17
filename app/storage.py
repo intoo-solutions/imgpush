@@ -106,7 +106,7 @@ class FileSystemStorage(Storage):
         end_time = time.time()
         total_time = (end_time - start_time) * 1000
 
-        last_execution_date = datetime.datetime.now().isoformat()
+        last_execution_date = int(time.time())
         metrics_str += f'last_execution_date{{service="imgpush-metrics-rebuilder", directory="{settings.FILES_DIR}"}} {last_execution_date}\n'
         metrics_str += f'last_execution_time_in_milliseconds{{service="imgpush-metrics-rebuilder", directory="{settings.FILES_DIR}"}} {total_time}\n'
 
@@ -210,9 +210,8 @@ class S3Storage(Storage):
         metrics_file = get_or_create_metrics_file()
         metrics = json.load(metrics_file)
 
-        last_execution_date = metrics.get(
-            "last_execution_date", datetime.datetime.now().isoformat()
-        )
+        last_execution_date = metrics.get("last_execution_date", int(time.time()))
+
         last_execution_time_in_milliseconds = metrics.get(
             "last_execution_time_in_milliseconds", 0
         )
