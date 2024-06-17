@@ -28,8 +28,8 @@ def validate_general_settings():
     if not mime_type_pattern.match(allowed_mime_file_types):
         raise ValueError("ALLOWED_MIME_FILE_TYPES must be in the format: 'mime1', 'mime2'")
 
-    if not mime_type_pattern.match(resizable_mime_file_types):
-        raise ValueError("RESIZABLE_MIME_FILE_TYPE must be in the format: 'mime1', 'mime2'")
+    if resizable_mime_file_types != "" and not mime_type_pattern.match(resizable_mime_file_types):
+        raise ValueError("RESIZABLE_MIME_FILE_TYPES must be in the format: 'mime1', 'mime2'")
     
     # check that all mime types are valid (i.e. they are in mimetypes.types_map or mimetypes.common_types)
     known_mime_types = set(mimetypes.types_map.values()).union(set(mimetypes.common_types.values()))
