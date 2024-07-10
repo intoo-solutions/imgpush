@@ -1,0 +1,31 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'severity']
+  routes:
+  - receiver: 'discord'
+    repeat_interval: 4h
+    match:
+      severity: warning
+  - receiver: 'discord'
+    repeat_interval: 12h
+    match:
+      severity: critical
+  - receiver: 'discord'
+    repeat_interval: 12h
+    match:
+      severity: major
+
+receivers:
+- name: 'default'
+- name: 'discord'
+  discord_configs:
+  - webhook_url: "YOUR_WEBHOOK_URL"
+    send_resolved: true
+    title: '{{ template "custom_title" . }}'
+    message: '{{ template "custom_mail_message" . }}'
+
+templates:
+  - '/etc/alertmanager/templates/default.tmpl'
