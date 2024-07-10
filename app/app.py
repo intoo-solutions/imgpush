@@ -334,6 +334,17 @@ def get_or_create_resized_image(filename, width, height):
 def metrics():
     return storage.get_metrics()
 
+@app.route("/info", methods=["GET"])
+def info():
+    return jsonify({
+        "application": {
+            "name": "imgpush",
+            "version": "0.2.0"
+        },
+        "storage": {
+            "type": storage.__class__.__name__,
+        }
+    })
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, threaded=True)
