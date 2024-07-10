@@ -224,11 +224,11 @@ class S3Storage(Storage):
             total_size_in_kilobytes = int(data["total_size"] / 1024)
             extension = mimetypes.guess_extension(mime_type)
 
-            metrics_str += f'directory_size_in_kilobytes{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.S3_BUCKET_NAME} Bucket"}} {total_size_in_kilobytes}\n'
-            metrics_str += f'directory_count{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.S3_BUCKET_NAME} Bucket"}} {count}\n'
+            metrics_str += f'directory_size_in_kilobytes{{service="imgpush", extension="{extension}", mime_type="{mime_type}", bucket_name="{settings.S3_BUCKET_NAME}", in_bucket_directory="{settings.S3_FOLDER_NAME}"}} {total_size_in_kilobytes}\n'
+            metrics_str += f'directory_count{{service="imgpush", extension="{extension}", mime_type="{mime_type}", bucket_name="{settings.S3_BUCKET_NAME}", in_bucket_directory="{settings.S3_FOLDER_NAME}"}} {count}\n'
 
-        metrics_str += f'last_execution_date{{service="imgpush-metrics-rebuilder", directory="{settings.S3_BUCKET_NAME} Bucket"}} {last_execution_date}\n'
-        metrics_str += f'last_execution_time_in_milliseconds{{service="imgpush-metrics-rebuilder", directory="{settings.S3_BUCKET_NAME} Bucket"}} {last_execution_time_in_milliseconds}\n'
+        metrics_str += f'last_execution_date{{service="imgpush-metrics-rebuilder", bucket_name="{settings.S3_BUCKET_NAME}", in_bucket_directory="{settings.S3_FOLDER_NAME}"}} {last_execution_date}\n'
+        metrics_str += f'last_execution_time_in_milliseconds{{service="imgpush-metrics-rebuilder", bucket_name="{settings.S3_BUCKET_NAME}", in_bucket_directory="{settings.S3_FOLDER_NAME}"}} {last_execution_time_in_milliseconds}\n'
 
         return metrics_str
 
