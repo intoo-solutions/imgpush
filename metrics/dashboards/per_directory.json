@@ -1,4 +1,26 @@
 {
+  "__inputs": [],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "panel",
+      "id": "barchart",
+      "name": "Bar chart",
+      "version": ""
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "11.1.0"
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
   "annotations": {
     "list": [
       {
@@ -18,14 +40,10 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 5,
+  "id": null,
   "links": [],
   "panels": [
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "fdp18s1gcym0we"
-      },
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -83,32 +101,7 @@
           },
           "unit": "deckbytes"
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "/files (véritable)"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -131,10 +124,6 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "fdp18s1gcym0we"
-          },
           "disableTextWrap": false,
           "editorMode": "builder",
           "expr": "sum by(directory) (predict_linear(directory_size_in_kilobytes[24h], 172800))",
@@ -148,10 +137,6 @@
           "useBackend": false
         },
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "fdp18s1gcym0we"
-          },
           "disableTextWrap": false,
           "editorMode": "builder",
           "expr": "sum by(directory) (directory_size_in_kilobytes)",
@@ -171,10 +156,6 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "fdp18s1gcym0we"
-      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -263,10 +244,6 @@
       "pluginVersion": "10.4.3",
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "fdp18s1gcym0we"
-          },
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
@@ -284,10 +261,6 @@
       "type": "barchart"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "fdp18s1gcym0we"
-      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -376,10 +349,6 @@
       "pluginVersion": "10.4.3",
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "fdp18s1gcym0we"
-          },
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
@@ -409,8 +378,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Per bucket",
+  "title": "Métriques par répertoire / bucket S3",
   "uid": "ddr7ywbhrzdvkf",
-  "version": 9,
+  "version": 3,
   "weekStart": ""
 }
