@@ -7,22 +7,10 @@
       "type": "datasource",
       "pluginId": "prometheus",
       "pluginName": "Prometheus"
-    },
-    {
-      "name": "DS_EXPRESSION",
-      "label": "Expression",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "__expr__"
     }
   ],
   "__elements": {},
   "__requires": [
-    {
-      "type": "datasource",
-      "id": "__expr__",
-      "version": "1.0.0"
-    },
     {
       "type": "panel",
       "id": "gauge",
@@ -77,10 +65,6 @@
   "links": [],
   "panels": [
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
       "description": "Nombre total de fichiers stockés",
       "fieldConfig": {
         "defaults": {
@@ -131,18 +115,14 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum(directory_count{environment=\"$environment\", client=\"$client\"})",
+          "expr": "sum(directory_count{environment=\"$environment\"})",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A",
-          "useBackend": false,
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "useBackend": false
         }
       ],
       "type": "stat"
@@ -198,158 +178,8 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum(directory_size_in_kilobytes{environment=\"$environment\", client=\"$client\"})",
+          "expr": "sum(directory_size_in_kilobytes{environment=\"$environment\"})",
           "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "description": "Dernière date d'exécution de la reconstruction des métriques",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "displayName": "Métriques récupérées du bucket",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "semi-dark-blue",
-                "value": null
-              }
-            ]
-          },
-          "unit": "dateTimeFromNow"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 8,
-        "y": 0
-      },
-      "id": 1,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.1.0",
-      "targets": [
-        {
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "last_execution_date{environment=\"$environment\", client=\"$client\"}",
-          "fullMetaSearch": false,
-          "hide": true,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false,
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
-        },
-        {
-          "datasource": {
-            "type": "__expr__",
-            "uid": "${DS_EXPRESSION}"
-          },
-          "expression": "$A * 1000",
-          "hide": false,
-          "refId": "B",
-          "type": "math"
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "description": "Dernière durée d'exécution du script de reconstruction des métriques",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "displayName": "Durée d'exécution",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "semi-dark-blue",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 60000
-              }
-            ]
-          },
-          "unit": "dtdurationms"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 10,
-        "x": 14,
-        "y": 0
-      },
-      "id": 5,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.1.0",
-      "targets": [
-        {
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "last_execution_time_in_milliseconds{environment=\"$environment\", client=\"$client\"}",
-          "fullMetaSearch": false,
-          "hide": false,
           "includeNullMetadata": true,
           "instant": false,
           "legendFormat": "__auto",
@@ -370,7 +200,7 @@
       },
       "id": 10,
       "panels": [],
-      "title": "Nombre de fichiers",
+      "title": "Nombre de fichiers et volume de données",
       "type": "row"
     },
     {
@@ -413,7 +243,7 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 24,
+        "w": 12,
         "x": 0,
         "y": 6
       },
@@ -441,7 +271,7 @@
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "directory_count{environment=\"$environment\", client=\"$client\"}",
+          "expr": "sum by(client) (directory_count{environment=\"$environment\"})",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -453,19 +283,6 @@
         }
       ],
       "type": "stat"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 11
-      },
-      "id": 11,
-      "panels": [],
-      "title": "Volume de données",
-      "type": "row"
     },
     {
       "fieldConfig": {
@@ -498,9 +315,9 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 24,
-        "x": 0,
-        "y": 12
+        "w": 12,
+        "x": 12,
+        "y": 6
       },
       "id": 23,
       "options": {
@@ -524,7 +341,7 @@
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "directory_size_in_kilobytes{environment=\"$environment\", client=\"$client\"}",
+          "expr": "sum by(client) (directory_size_in_kilobytes{environment=\"$environment\"})",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -536,6 +353,19 @@
         }
       ],
       "type": "gauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "id": 11,
+      "panels": [],
+      "title": "Volume de données",
+      "type": "row"
     },
     {
       "fieldConfig": {
@@ -596,7 +426,7 @@
         "h": 11,
         "w": 12,
         "x": 0,
-        "y": 17
+        "y": 12
       },
       "id": 21,
       "options": {
@@ -617,7 +447,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "directory_size_in_kilobytes{environment=\"$environment\", client=\"$client\"}",
+          "expr": "sum by(client) (directory_size_in_kilobytes{environment=\"$environment\"})",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -689,7 +519,7 @@
         "h": 11,
         "w": 12,
         "x": 12,
-        "y": 17
+        "y": 12
       },
       "id": 20,
       "options": {
@@ -710,7 +540,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "directory_count{environment=\"$environment\", client=\"$client\"}",
+          "expr": "sum by(client) (directory_count{environment=\"$environment\"})",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -729,7 +559,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 23
       },
       "id": 24,
       "panels": [],
@@ -820,7 +650,7 @@
         "h": 11,
         "w": 24,
         "x": 0,
-        "y": 29
+        "y": 24
       },
       "id": 25,
       "options": {
@@ -841,7 +671,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "directory_count{environment=\"$environment\", client=\"$client\"}",
+          "expr": "sum by(client) (directory_count{environment=\"$environment\"})",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -853,12 +683,12 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "directory_size_in_kilobytes{environment=\"$environment\", client=\"$client\"}",
+          "expr": "sum by(client) (directory_size_in_kilobytes{environment=\"$environment\"})",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
           "instant": false,
-          "legendFormat": "{{extension}} kB",
+          "legendFormat": "{{client}} kB",
           "range": true,
           "refId": "Size",
           "useBackend": false
@@ -867,7 +697,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "auto",
+  "refresh": "10s",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -896,30 +726,6 @@
         "skipUrlSync": false,
         "sort": 0,
         "type": "query"
-      },
-      {
-        "current": {},
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${DS_PROMETHEUS}"
-        },
-        "definition": "label_values(client)",
-        "hide": 0,
-        "includeAll": false,
-        "label": "Client",
-        "multi": false,
-        "name": "client",
-        "options": [],
-        "query": {
-          "qryType": 1,
-          "query": "label_values(client)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
       }
     ]
   },
@@ -929,8 +735,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Métriques globales (par client et par environnement)",
-  "uid": "adp1dzwtltmgwe",
-  "version": 3,
+  "title": "Métriques des clients",
+  "uid": "adr7qnvdcp3wgf",
+  "version": 2,
   "weekStart": ""
 }
