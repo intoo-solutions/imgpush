@@ -16,7 +16,7 @@ scrape_configs:
       - targets: ["imgpush-prod-client1:5000"]
         labels:
           environment: "prod"
-          client: "Pégase"
+          client: "Client 1"
 
     metrics_path: "/metrics"
 
@@ -25,7 +25,7 @@ scrape_configs:
       - targets: ["172.17.0.1:55001"]
         labels:
           environment: "staging"
-          client: "Pégase"
+          client: "Client 1"
 
     metrics_path: "/metrics"
 
@@ -34,13 +34,13 @@ scrape_configs:
       - targets: ["172.17.0.1:55002"]
         labels:
           environment: "staging"
-          client: "client2"
+          client: "Client 2"
 
   - job_name: "client2-prod"
     static_configs:
       - targets: ["172.17.0.1:55003"]
         labels:
           environment: "prod"
-          client: "client2"
+          client: "Client 2"
 
     metrics_path: "/metrics"
