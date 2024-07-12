@@ -120,33 +120,7 @@
           },
           "unit": "deckbytes"
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "/files (véritable)",
-                  "/files (prédite)"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 13,
@@ -705,6 +679,6 @@
   "timezone": "browser",
   "title": "Métriques par répertoire / bucket S3",
   "uid": "ddr7ywbhrzdvkf",
-  "version": 5,
+  "version": 2,
   "weekStart": ""
 }
