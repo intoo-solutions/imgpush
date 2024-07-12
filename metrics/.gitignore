@@ -1,0 +1,4 @@
+*.exe
+alertmanager.yml
+files-client1/
+files-client2-prod/

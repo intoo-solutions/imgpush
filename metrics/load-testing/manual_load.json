@@ -1,0 +1,32 @@
+{
+    "request_count": 20000,
+    "load_type": "linear",
+    "duration": 2400,
+    "manual_load": [
+        {"duration": 20, "count": 500},
+        {"duration": 60, "count": 120},
+        {"duration": 40, "count": 100},
+        {"duration": 120, "count": 80},
+        {"duration": 30, "count": 1000},
+        {"duration": 240, "count": 800},
+        {"duration": 40, "count": 300},
+        {"duration": 20, "count": 300},
+        {"duration": 360, "count": 80}
+    ],
+    "output": "stdout",
+    "steps": [
+        {
+            "id": 1,
+            "url": "http://localhost:55000/",
+            "method": "POST",
+            "payload_multipart": [
+                {
+                    "name": "file",
+                    "value": "./Wallpaper.jpg",
+                    "type": "file"
+                }
+            ],
+            "timeout": 2
+        }
+    ]
+}

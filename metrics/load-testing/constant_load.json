@@ -1,0 +1,21 @@
+{
+    "request_count": 3500,
+    "load_type": "linear",
+    "duration": 3000,
+    "output": "stdout",
+    "steps": [
+        {
+            "id": 1,
+            "url": "http://localhost:55001/",
+            "method": "POST",
+            "payload_multipart": [
+                {
+                    "name": "file",
+                    "value": "./Wallpaper.jpg",
+                    "type": "file"
+                }
+            ],
+            "timeout": 2
+        }
+    ]
+}

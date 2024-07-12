@@ -8,7 +8,21 @@ services:
       - ./app:/app
       - ./files:/files
       - ./cache:/cache
+      - ./metrics:/metrics
     healthcheck:
       start_period: 0s
       test: ['CMD-SHELL', 'curl localhost:5000/liveness -s -f -o /dev/null || exit 1']
       interval: 30s
+    env_file:
+      - .env
+
+  metrics-rebuilder:
+    build: .
+    volumes:
+      - ./app:/app
+      - ./metrics:/metrics
+    env_file:
+      - .env
+    environment:
+      # This will trigger the metrics rebuilder
+      - REBUILD_METRICS=1
