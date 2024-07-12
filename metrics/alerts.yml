@@ -15,8 +15,8 @@ groups:
          casUp: "Des images sont à nouveau présentes dans l'espace de stockage"
 
       - alert: UploadRateUnusual 
-        expr: sum(rate(directory_count[15m])) > 2.5 * sum(rate(directory_count[1h])) # ajouter une valeur absolue pour pas être alerté quand c'est de 1 à 10 c'est pas grave (300)
-        for: 30s # 5m
+        expr: sum(rate(directory_count[15m])) > 2.5 * sum(rate(directory_count[1h])) and sum(rate(directory_count[15m])) > 300
+        for: 5m
         labels:
           severity: warning
           alert_type: imgpush
@@ -28,7 +28,7 @@ groups:
           casUp: "Le taux de mises en ligne d'images est revenu à des niveaux normaux"
 
       - alert: HighDiskUsage
-        expr: sum(directory_size_in_kilobytes{directory!=""}) / 1024 / 1024 > 50
+        expr: sum(directory_size_in_kilobytes{directory!=""}) / 1024 / 1024 > 50 # Modifier la valeur de 50 Go si nécessaire
         for: 10m
         labels:
           severity: warning
@@ -41,7 +41,7 @@ groups:
           casUp: "L'utilisation du disque est revenue à des niveaux acceptables"
 
       - alert: NoFilesUploadedForMoreThan3Days
-        expr: sum(rate(directory_count[72h])) == 0
+        expr: sum(rate(directory_count[72h])) == 0 and sum(rate(directory_count[7d)) > 0
         for: 1m
         labels:
           severity: warning
