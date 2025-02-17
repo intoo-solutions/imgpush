@@ -9,10 +9,11 @@ import string
 import uuid
 import re
 import subprocess
+import logging
 
 import filetype
 import timeout_decorator
-from flask import Flask, jsonify, request, send_from_directory, Response
+from flask import Flask, jsonify, request, send_from_directory, Response, current_app
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -24,6 +25,10 @@ import settings
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
+
+app.logger.setLevel(logging.INFO)
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.INFO)
 
 CORS(app, origins=settings.ALLOWED_ORIGINS)
 app.config["MAX_CONTENT_LENGTH"] = settings.MAX_SIZE_MB * 1024 * 1024
@@ -154,6 +159,7 @@ def liveness():
     )
 )
 def upload_file():
+    current_app.logger.info("Upload file")
     _clear_imagemagick_temp_files()
 
     if "file" not in request.files:
@@ -162,6 +168,8 @@ def upload_file():
     file = request.files["file"]
 
     random_string = _get_random_filename()
+    current_app.logger.info("Upload file : name generated %s", random_string)
+
     tmp_filepath = os.path.join("/tmp/", random_string)
     file.save(tmp_filepath)
 
@@ -201,7 +209,7 @@ def upload_file():
 
     if error:
         return jsonify(error=error), 400
-
+    current_app.logger.info("Upload file : returning filename %s", output_filename)
     return jsonify(filename=output_filename)
 
 @app.route("/<string:filename>", methods=["DELETE"])
@@ -209,7 +217,7 @@ def upload_file():
 def delete_image(filename):
     # check the name looks like a filename and 
     # need some mort protection
-    if(filename) and (re.match("^[\w\d-]+\.[\w\d]+$", filename)):
+    if(filename) and (re.match(r"^[\w\d-]+\.[\w\d]+$", filename)):
         path = os.path.join(settings.FILES_DIR, filename)
         # dont allow to delete "."
         if (os.path.exists(path)) and (os.path.isfile(path)):
