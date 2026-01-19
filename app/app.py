@@ -213,8 +213,8 @@ def upload_file():
             raise CollisionError
         if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPES:
             # We need a BufferedReader to be able to save the file to the storage provider
-            file = open(tmp_filepath, "rb")
-            storage.save(file, output_filename)
+            with open(tmp_filepath, "rb") as file:
+                storage.save(file, output_filename)
             os.remove(tmp_filepath)
         else:
             converted_file_path = f"{tmp_filepath}.{output_type}"
@@ -230,8 +230,8 @@ def upload_file():
                     with img.convert(output_type) as converted:
                         converted.save(filename=converted_file_path)
 
-            converted_file = open(converted_file_path, "rb")
-            storage.save(converted_file, output_filename)
+            with open(converted_file_path, "rb") as converted_file:
+                storage.save(converted_file, output_filename)
             # After saving the converted file on the storage provider, we can delete the temporary file from the filesystem
             os.remove(converted_file_path)
 
