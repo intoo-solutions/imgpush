@@ -296,5 +296,5 @@ def update_metrics(file_size, mime_type, remove=False):
         json.dump(metrics, metrics_file)
         metrics_file.close()
     except Exception as e:
-        logger.info(f"Error updating metrics: {e}")
+        logger.error(f"Error updating metrics: {e}")
         return
