@@ -1,4 +1,5 @@
 import datetime
+import fcntl
 import json
 import logging
 import mimetypes
@@ -277,25 +278,36 @@ def get_or_create_metrics_file():
 
 def update_metrics(file_size, mime_type, remove=False):
     try:
-        metrics_file = get_or_create_metrics_file()
-        metrics = json.load(metrics_file)
+        # Ensure the metrics file exists
+        get_or_create_metrics_file().close()
 
-        data = metrics.get(mime_type, {"count": 0, "total_size": 0})
+        # Open file for read/write and acquire exclusive lock
+        with open(settings.METRICS_FILE_PATH, "r+") as metrics_file:
+            # Acquire exclusive lock to prevent race conditions
+            fcntl.flock(metrics_file.fileno(), fcntl.LOCK_EX)
 
-        if remove:
-            data["count"] -= 1
-            data["total_size"] -= file_size
-        else:
-            data["count"] += 1
-            data["total_size"] += file_size
+            try:
+                metrics = json.load(metrics_file)
+            except json.JSONDecodeError:
+                metrics = {}
 
-        metrics[mime_type] = data
+            data = metrics.get(mime_type, {"count": 0, "total_size": 0})
 
-        metrics_file.close()
+            if remove:
+                data["count"] -= 1
+                data["total_size"] -= file_size
+            else:
+                data["count"] += 1
+                data["total_size"] += file_size
 
-        metrics_file = open(settings.METRICS_FILE_PATH, "w")
-        json.dump(metrics, metrics_file)
-        metrics_file.close()
+            metrics[mime_type] = data
+
+            # Rewrite the file from the beginning
+            metrics_file.seek(0)
+            metrics_file.truncate()
+            json.dump(metrics, metrics_file)
+
+            # Lock is automatically released when file is closed
     except Exception as e:
         logger.error(f"Error updating metrics: {e}")
         return
