@@ -6,8 +6,7 @@ import time
 from storage import S3Storage, get_storage
 import settings
 from collections import defaultdict
-
-import settings
+import json
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -99,8 +98,6 @@ logger.info(
     f"Metrics rebuilt in {total_time:.2f}s (average of {average_time:.4f}s per object)"
 )
 logger.info(f"Saving file to {settings.METRICS_FILE_PATH}")
-
-import json
 
 # Saving the metrics to a file
 # if the file doesn't exist, create it
