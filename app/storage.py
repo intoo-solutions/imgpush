@@ -7,6 +7,7 @@ import filetype
 import os
 import subprocess
 import boto3
+from botocore.exceptions import ClientError
 from abc import ABC, abstractmethod
 import settings
 
@@ -179,7 +180,7 @@ class S3Storage(Storage):
             object_info = self.s3.head_object(
                 Bucket=settings.S3_BUCKET_NAME, Key=build_path(filename)
             )
-        except:
+        except ClientError:
             return
 
         file_size, mime_type = object_info["ContentLength"], object_info["ContentType"]
@@ -193,7 +194,7 @@ class S3Storage(Storage):
                 Bucket=settings.S3_BUCKET_NAME, Key=build_path(filename)
             )
             return True
-        except:
+        except ClientError:
             return False
 
     def get(self, filename):
