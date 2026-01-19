@@ -3,6 +3,7 @@ import fcntl
 import json
 import logging
 import mimetypes
+import tempfile
 import time
 import filetype
 import os
@@ -203,7 +204,12 @@ class S3Storage(Storage):
         Should store the file in a temporary directory
         and return the path to the file, as well as a function to delete the file
         """
-        tmp_path = f"/tmp/{filename}"
+        # Extract extension to preserve it in the temp file (needed for image processing)
+        _, extension = os.path.splitext(filename)
+        # Use tempfile.mkstemp for secure temporary file creation
+        fd, tmp_path = tempfile.mkstemp(suffix=extension)
+        os.close(fd)  # Close the file descriptor, boto3 will open it
+
         self.s3.download_file(settings.S3_BUCKET_NAME, build_path(filename), tmp_path)
 
         return tmp_path, lambda: os.remove(tmp_path)
