@@ -76,6 +76,32 @@ class InvalidFileTypeError(Exception):
     pass
 
 
+class InvalidFolderError(Exception):
+    pass
+
+
+def _validate_folder(folder):
+    """
+    Validate folder parameter to prevent path traversal attacks.
+    Returns sanitized folder or raises InvalidFolderError.
+    """
+    if not folder:
+        return ""
+
+    # Remove leading/trailing slashes and whitespace
+    folder = folder.strip().strip("/")
+
+    # Check for path traversal attempts
+    if ".." in folder or folder.startswith("/"):
+        raise InvalidFolderError("Invalid folder path")
+
+    # Only allow alphanumeric, hyphens, underscores, and forward slashes
+    if not re.match(r"^[\w\-/]+$", folder):
+        raise InvalidFolderError("Folder contains invalid characters")
+
+    return folder
+
+
 def _get_size_from_string(size):
     try:
         size = int(size)
@@ -191,6 +217,13 @@ def upload_file():
 
     file = request.files["file"]
 
+    # Get optional folder parameter
+    folder = request.form.get("folder", "")
+    try:
+        folder = _validate_folder(folder)
+    except InvalidFolderError as e:
+        return jsonify(error=str(e)), 400
+
     # Saving the file to a temporary location
     random_string = _get_random_filename()
     tmp_filepath = os.path.join("/tmp/", random_string)
@@ -202,7 +235,13 @@ def upload_file():
         return jsonify(error="File type could not be determined!"), 400
 
     output_type = settings.OUTPUT_TYPE or file_type.extension
-    output_filename = os.path.basename(tmp_filepath) + f".{output_type}"
+    base_filename = os.path.basename(tmp_filepath) + f".{output_type}"
+
+    # Include folder in output path if specified
+    if folder:
+        output_filename = f"{folder}/{base_filename}"
+    else:
+        output_filename = base_filename
 
     error = None
 
@@ -247,17 +286,19 @@ def upload_file():
     return jsonify(filename=output_filename)
 
 
-@app.route("/<string:filename>", methods=["DELETE"])
+@app.route("/<path:filename>", methods=["DELETE"])
 @limiter.exempt
 def delete_image(filename):
-    # check the name looks like a filename and
-    # need some more protection
-    if (filename) and (re.match("^[\w\d-]+\.[\w\d]+$", filename)):
-        storage.delete(filename)
+    # check the name looks like a valid path (optional folders + filename)
+    # allows: file.png, folder/file.png, folder/subfolder/file.png
+    if (filename) and (re.match(r"^[\w\d\-/]+\.[\w\d]+$", filename)):
+        # Additional check: no path traversal
+        if ".." not in filename:
+            storage.delete(filename)
     return Response(status=200)
 
 
-@app.route("/<string:filename>")
+@app.route("/<path:filename>")
 @limiter.exempt
 def get_file(filename):
     if not storage.exists(filename):
@@ -322,6 +363,11 @@ def get_or_create_resized_image(filename, width, height):
 
         resized_image = _resize_image(tmp_filepath, width, height)
         resized_image.strip()
+
+        # Create cache subdirectory if needed (for folder-based uploads)
+        resized_dir = os.path.dirname(resized_path)
+        if resized_dir and not os.path.exists(resized_dir):
+            os.makedirs(resized_dir, exist_ok=True)
 
         resized_image.save(filename=resized_path)
         resized_image.close()
