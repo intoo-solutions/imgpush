@@ -1,6 +1,6 @@
 import datetime
+import logging
 import mimetypes
-import shutil
 import time
 import glob
 import os
@@ -8,12 +8,11 @@ import random
 import string
 import uuid
 import re
-import subprocess
-import logging
 
+from storage import get_storage
 import filetype
 import timeout_decorator
-from flask import Flask, jsonify, request, send_from_directory, Response, current_app
+from flask import Flask, jsonify, request, Response, send_file, send_from_directory, current_app
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -23,6 +22,18 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 import settings
 
+level = logging.INFO
+if os.getenv("DEBUG", "0") == "1":
+    level = logging.DEBUG
+
+logging.basicConfig(
+    level=level, format="%(asctime)s | %(levelname)-8s %(name)-13s > %(message)s"
+)
+
+logger = logging.getLogger(__name__)
+
+logger.info("imgpush is starting...")
+
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
@@ -30,11 +41,22 @@ app.logger.setLevel(logging.INFO)
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.INFO)
 
+logger.info("-" * 40)
+
+storage = get_storage()
+logger.info("Using storage: %s" % storage.__class__.__name__)
+logger.info(storage)
+
+logger.info("-" * 40)
+
 CORS(app, origins=settings.ALLOWED_ORIGINS)
 app.config["MAX_CONTENT_LENGTH"] = settings.MAX_SIZE_MB * 1024 * 1024
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
 
+logger.info("imgpush is listening on port 5000!")
+
 app.use_x_sendfile = True
+
 
 @app.after_request
 def after_request(resp):
@@ -49,11 +71,40 @@ def after_request(resp):
 class InvalidSize(Exception):
     pass
 
+
 class CollisionError(Exception):
     pass
 
+
 class InvalidFileTypeError(Exception):
     pass
+
+
+class InvalidFolderError(Exception):
+    pass
+
+
+def _validate_folder(folder):
+    """
+    Validate folder parameter to prevent path traversal attacks.
+    Returns sanitized folder or raises InvalidFolderError.
+    """
+    if not folder:
+        return ""
+
+    # Remove leading/trailing slashes and whitespace
+    folder = folder.strip().strip("/")
+
+    # Check for path traversal attempts
+    if ".." in folder or folder.startswith("/"):
+        raise InvalidFolderError("Invalid folder path")
+
+    # Only allow alphanumeric, hyphens, underscores, and forward slashes
+    if not re.match(r"^[\w\-/]+$", folder):
+        raise InvalidFolderError("Folder contains invalid characters")
+
+    return folder
+
 
 def _get_size_from_string(size):
     try:
@@ -74,7 +125,8 @@ def _clear_imagemagick_temp_files():
     imagemagick_temp_files = glob.glob("/tmp/magick-*")
     for filepath in imagemagick_temp_files:
         modified = datetime.datetime.strptime(
-            time.ctime(os.path.getmtime(filepath)), "%a %b %d %H:%M:%S %Y",
+            time.ctime(os.path.getmtime(filepath)),
+            "%a %b %d %H:%M:%S %Y",
         )
         diff = datetime.datetime.now() - modified
         seconds = diff.seconds
@@ -103,8 +155,6 @@ def _generate_random_filename():
 
 
 def _resize_image(path, width, height):
-    filename_without_extension, extension = os.path.splitext(path)
-
     with Image(filename=path) as src:
         img = src.clone()
 
@@ -130,7 +180,10 @@ def _resize_image(path, width, height):
     else:
         newwidth = int(img.height * desired_aspect_ratio)
         img.crop(
-            int((img.width / 2) - (newwidth / 2)), 0, width=newwidth, height=img.height,
+            int((img.width / 2) - (newwidth / 2)),
+            0,
+            width=newwidth,
+            height=img.height,
         )
 
     @timeout_decorator.timeout(settings.RESIZE_TIMEOUT)
@@ -144,9 +197,11 @@ def _resize_image(path, width, height):
 
     return img
 
+
 @app.route("/liveness", methods=["GET"])
 def liveness():
     return Response(status=200)
+
 
 @app.route("/", methods=["POST"])
 @limiter.limit(
@@ -167,40 +222,65 @@ def upload_file():
 
     file = request.files["file"]
 
+    # Get optional folder parameter
+    folder = request.form.get("folder", "")
+    try:
+        folder = _validate_folder(folder)
+    except InvalidFolderError as e:
+        return jsonify(error=str(e)), 400
+
+    # Saving the file to a temporary location
     random_string = _get_random_filename()
     current_app.logger.info("Upload file : name generated %s", random_string)
 
     tmp_filepath = os.path.join("/tmp/", random_string)
     file.save(tmp_filepath)
+    file.seek(0)
 
     file_type = filetype.guess(tmp_filepath)
     if file_type is None:
         return jsonify(error="File type could not be determined!"), 400
 
     output_type = settings.OUTPUT_TYPE or file_type.extension
-    output_filename = os.path.basename(tmp_filepath) + f".{output_type}"
-    output_path = os.path.join(settings.FILES_DIR, output_filename)
+    base_filename = os.path.basename(tmp_filepath) + f".{output_type}"
+
+    # Include folder in output path if specified
+    if folder:
+        output_filename = f"{folder}/{base_filename}"
+    else:
+        output_filename = base_filename
 
     error = None
 
     try:
         if file_type.mime not in settings.ALLOWED_MIME_FILE_TYPES:
             raise InvalidFileTypeError
-        if os.path.exists(output_path):
+        if storage.exists(output_filename):
             raise CollisionError
-        if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPE:
-            shutil.move(tmp_filepath, output_path)
+        if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPES:
+            # We need a BufferedReader to be able to save the file to the storage provider
+            with open(tmp_filepath, "rb") as file:
+                storage.save(file, output_filename)
+            os.remove(tmp_filepath)
         else:
+            converted_file_path = f"{tmp_filepath}.{output_type}"
+
             with Image(filename=tmp_filepath) as img:
                 img.strip()
                 if output_type not in ["gif"]:
                     with img.sequence[0] as first_frame:
                         with Image(image=first_frame) as first_frame_img:
                             with first_frame_img.convert(output_type) as converted:
-                                converted.save(filename=output_path)
+                                converted.save(filename=converted_file_path)
                 else:
                     with img.convert(output_type) as converted:
-                        converted.save(filename=output_path)
+                        converted.save(filename=converted_file_path)
+
+            with open(converted_file_path, "rb") as converted_file:
+                storage.save(converted_file, output_filename)
+            # After saving the converted file on the storage provider, we can delete the temporary file from the filesystem
+            os.remove(converted_file_path)
+
     except (MissingDelegateError, InvalidFileTypeError):
         error = "Invalid Filetype"
     finally:
@@ -212,44 +292,38 @@ def upload_file():
     current_app.logger.info("Upload file : returning filename %s", output_filename)
     return jsonify(filename=output_filename)
 
-@app.route("/<string:filename>", methods=["DELETE"])
+
+@app.route("/<path:filename>", methods=["DELETE"])
 @limiter.exempt
 def delete_image(filename):
-    # check the name looks like a filename and 
-    # need some mort protection
-    if(filename) and (re.match(r"^[\w\d-]+\.[\w\d]+$", filename)):
-        path = os.path.join(settings.FILES_DIR, filename)
-        # dont allow to delete "."
-        if (os.path.exists(path)) and (os.path.isfile(path)):
-            os.remove(path)
+    # check the name looks like a valid path (optional folders + filename)
+    # allows: file.png, folder/file.png, folder/subfolder/file.png
+    if (filename) and (re.match(r"^[\w\d\-/]+\.[\w\d]+$", filename)):
+        # Additional check: no path traversal
+        if ".." not in filename:
+            storage.delete(filename)
     return Response(status=200)
 
 
-@app.route("/<string:filename>")
+@app.route("/<path:filename>")
 @limiter.exempt
 def get_file(filename):
-    path = os.path.join(settings.FILES_DIR, filename)
+    if not storage.exists(filename):
+        return jsonify(error="File not found!"), 404
 
-    if os.path.isfile(path):
+    file_type = mimetypes.guess_type(filename)
+    mime_type = file_type[0]
 
-        file_type = filetype.guess(path)
-        if file_type is None:
-            return jsonify(error="File type could not be determined!"), 400
-        
-        if file_type.mime not in settings.RESIZABLE_MIME_FILE_TYPE:
-            return send_from_directory(settings.FILES_DIR, filename)
-        else:
-            return _get_image(filename)
-        
-    return jsonify(error="File not found!"), 404
+    if file_type is None:
+        response = jsonify(error="File type could not be determined!"), 500
+        return response
 
-def _get_image(filename):
     width = request.args.get("w", "")
     height = request.args.get("h", "")
 
-    path = os.path.join(settings.FILES_DIR, filename)
-
-    if (width or height) and (os.path.isfile(path)):
+    # If the file type is resizable and the user is asking for a resized version
+    # we first check if it is cached before downloading the file
+    if mime_type in settings.RESIZABLE_MIME_FILE_TYPES and (width or height):
         try:
             width = _get_size_from_string(width)
             height = _get_size_from_string(height)
@@ -259,42 +333,71 @@ def _get_image(filename):
                 400,
             )
 
-        filename_without_extension, extension_with_dot = os.path.splitext(filename)
-        extension = extension_with_dot[1:]  # remove the dot from the extension
-        dimensions = f"{width}x{height}"
-        resized_filename = f"{filename_without_extension}_{dimensions}.{extension}"
+        response = get_or_create_resized_image(filename, width, height)
+        apply_cache(response)
+        return response
 
-        resized_path = os.path.join(settings.CACHE_DIR, resized_filename)
+    # If the file type is not resizable, or the user is not asking for a resized version
+    # We serve the file directly
+    tmp_filepath, delete_temporary_file = storage.get(filename)
 
-        if not os.path.isfile(resized_path) and (width or height):
-            _clear_imagemagick_temp_files()
-            resized_image = _resize_image(path, width, height)
-            resized_image.strip()
-            resized_image.save(filename=resized_path)
-            resized_image.close()
+    response = send_file(tmp_filepath)
+    delete_temporary_file()
+
+    apply_cache(response)
+    return response
+
+
+def apply_cache(response):
+    response.headers["Cache-Control"] = f"public, max-age={60*60}"
+    response.headers["Expires"] = f"{60*60}"
+
+
+def get_or_create_resized_image(filename, width, height):
+    filename_without_extension, extension_with_dot = os.path.splitext(filename)
+    extension = extension_with_dot[1:]  # remove the dot from the extension
+    dimensions = f"{width}x{height}"
+    resized_filename = f"{filename_without_extension}_{dimensions}.{extension}"
+
+    resized_path = os.path.join(settings.CACHE_DIR, resized_filename)
+
+    # If the resized version is cached, we return it
+    if os.path.isfile(resized_path) and (width or height):
         return send_from_directory(settings.CACHE_DIR, resized_filename)
+    # If the resized version is not cached, we generate it and return it
+    else:
+        tmp_filepath, delete_temporary_file = storage.get(filename)
 
-    return send_from_directory(settings.FILES_DIR, filename)
+        resized_image = _resize_image(tmp_filepath, width, height)
+        resized_image.strip()
+
+        # Create cache subdirectory if needed (for folder-based uploads)
+        resized_dir = os.path.dirname(resized_path)
+        if resized_dir and not os.path.exists(resized_dir):
+            os.makedirs(resized_dir, exist_ok=True)
+
+        resized_image.save(filename=resized_path)
+        resized_image.close()
+
+        delete_temporary_file()
+        return send_file(resized_path)
+
 
 @app.route("/metrics", methods=["GET"])
 def metrics():
-    metrics = {}
-    for mime_type in settings.ALLOWED_MIME_FILE_TYPES:
-        extension = mimetypes.guess_extension(mime_type)
-        if extension:
-            extension = extension[1:] # remove dot from extension
-            ps = subprocess.Popen(f"find {settings.FILES_DIR} -type f -name '*.{extension}' | wc -l", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            nbfiles = ps.communicate()[0].split()[0].decode('utf-8')
-            size = subprocess.check_output([f'du -c {settings.FILES_DIR}/*.{extension} | tail -n 1 | cut -f 1'], shell=True).decode('utf-8').strip()
-            metrics[mime_type] = {"count": nbfiles, "size": size}
+    return storage.get_metrics()
 
-    metrics_str = ""
-    for mime_type, data in metrics.items():
-        extension = mimetypes.guess_extension(mime_type)
-        metrics_str += f'directory_size{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {data["size"]}\n'
-        metrics_str += f'directory_count{{service="imgpush", extension="{extension}", mime_type="{mime_type}", directory="{settings.FILES_DIR}"}} {data["count"]}\n'
-
-    return metrics_str
+@app.route("/info", methods=["GET"])
+def info():
+    return jsonify({
+        "application": {
+            "name": "imgpush",
+            "version": "0.2.0"
+        },
+        "storage": {
+            "type": storage.__class__.__name__,
+        }
+    })
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, threaded=True)

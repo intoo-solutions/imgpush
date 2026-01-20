@@ -1,0 +1,130 @@
+services:
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+     - '53000:3000'
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - imgpush
+
+  prometheus:
+    image: prom/prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-storage:/prometheus
+      - ./alerts.yml:/etc/prometheus/alerts.yml
+    ports:
+      - '59090:9090'
+    networks:
+      - imgpush
+
+  prometheus-alertmanager:
+    image: prom/alertmanager
+    restart: unless-stopped
+    ports:
+      - '59093:9093'
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - ./templates:/etc/alertmanager/templates
+      - alertmanager-storage:/data
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    networks:
+      - imgpush
+
+  imgpush-prod-client1:
+    image: intoo/imgpush:0.2.0
+    volumes:
+      - ./cache:/cache
+      - ./metrics:/metrics
+    healthcheck:
+      start_period: 0s
+      test: ['CMD-SHELL', 'curl localhost:5000/liveness -s -f -o /dev/null || exit 1']
+      interval: 30s
+    ports:
+      - '55000:5000'
+    networks:
+      - imgpush
+    env_file:
+      - .env
+    environment:
+      - MAX_UPLOADS_PER_MINUTE=200000
+      - MAX_UPLOADS_PER_HOUR=200000
+      - MAX_UPLOADS_PER_DAY=200000
+
+  imgpush-staging-client1:
+    image: intoo/imgpush:0.2.0
+    volumes:
+      - ./files-client1:/files
+      - ./cache:/cache
+    healthcheck:
+      start_period: 0s
+      test: ['CMD-SHELL', 'curl localhost:5000/liveness -s -f -o /dev/null || exit 1']
+      interval: 30s
+    ports:
+      - '55001:5000'
+    networks:
+      - imgpush
+    environment:
+      - FILES_DIR=/files
+      - ALLOWED_MIME_FILE_TYPES='image/jpeg','image/png','image/gif'
+      - MAX_UPLOADS_PER_MINUTE=200000
+      - MAX_UPLOADS_PER_HOUR=200000
+      - MAX_UPLOADS_PER_DAY=200000
+
+  imgpush-staging-client2:
+    image: intoo/imgpush:0.2.0
+    volumes:
+      - ./cache:/cache
+    healthcheck:
+      start_period: 0s
+      test: ['CMD-SHELL', 'curl localhost:5000/liveness -s -f -o /dev/null || exit 1']
+      interval: 30s
+    ports:
+      - '55002:5000'
+    networks:
+      - imgpush
+    env_file:
+      - .env
+    environment:
+      - S3_FOLDER_NAME=/client2
+      - ALLOWED_MIME_FILE_TYPES='image/jpeg','image/png','image/gif'
+
+  imgpush-prod-client2:
+    image: intoo/imgpush:0.2.0
+    volumes:
+      - ./files-client2-prod:/files
+      - ./cache:/cache
+    healthcheck:
+      start_period: 0s
+      test: ['CMD-SHELL', 'curl localhost:5000/liveness -s -f -o /dev/null || exit 1']
+      interval: 30s
+    ports:
+      - '55003:5000'
+    networks:
+      - imgpush
+    environment:
+      - FILES_DIR=/files
+      - ALLOWED_MIME_FILE_TYPES='image/jpeg','image/png','image/gif'
+
+  metrics-rebuilder:
+    image: intoo/imgpush:0.2.0
+    volumes:
+      - ./metrics:/metrics
+    env_file:
+      - .env
+    environment:
+      # This will trigger the metrics rebuilder
+      - REBUILD_METRICS=1
+
+volumes:
+  grafana-storage:
+  prometheus-storage:
+  alertmanager-storage:
+
+networks:
+  imgpush:

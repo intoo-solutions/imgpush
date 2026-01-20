@@ -1,0 +1,54 @@
+groups:
+  - name: Alertes imgpush
+    rules:
+      - alert: NoFilesDetected
+        expr: changes(directory_count[2h]) == -1 and directory_count == 0
+        for: 1m
+        labels:
+         severity: critical
+         alert_type: imgpush
+        annotations:
+         identifier: "{{ $labels.instance }}"
+         summary: "Aucune image détectée sur {{ $labels.instance }} ({{ $labels.job }})"
+         description: "Aucune image n'est détectée dans l'espace de stockage"
+         casDown: "Aucune image n'est détectée dans l'espace de stockage"
+         casUp: "Des images sont à nouveau présentes dans l'espace de stockage"
+
+      - alert: UploadRateUnusual 
+        expr: sum(rate(directory_count[15m])) > 2.5 * sum(rate(directory_count[1h])) and sum(rate(directory_count[15m])) > 300
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: imgpush
+        annotations:
+          identifier: "{{ $labels.instance }}"
+          summary: "Pic inhabituel de mise en ligne d'images sur {{ $labels.instance }} ({{ $labels.job }})"
+          description: "Le nombre d'images mises en ligne dans les 5 dernières minutes est supérieur à 250% du taux moyen de téléchargement de la dernière heure"
+          casDown: "Un pic inhabituel de mises en ligne d'images a été détecté"
+          casUp: "Le taux de mises en ligne d'images est revenu à des niveaux normaux"
+
+      - alert: HighDiskUsage
+        expr: sum(directory_size_in_kilobytes{directory!=""}) / 1024 / 1024 > 50 # Modifier la valeur de 50 Go si nécessaire
+        for: 10m
+        labels:
+          severity: warning
+          alert_type: imgpush
+        annotations:
+          identifier: "{{ $labels.instance }}"
+          summary: "Utilisation élevée du disque sur {{ $labels.instance }} ({{ $labels.job }})"
+          description: "La taille totale du répertoire a dépassé 50 Go"
+          casDown: "L'utilisation du disque est critiquement élevée"
+          casUp: "L'utilisation du disque est revenue à des niveaux acceptables"
+
+      - alert: NoFilesUploadedForMoreThan3Days
+        expr: sum(rate(directory_count[72h])) == 0 and sum(rate(directory_count[7d)) > 0
+        for: 1m
+        labels:
+          severity: warning
+          alert_type: imgpush
+        annotations:
+          identifier: "{{ $labels.instance }}"
+          summary: "Aucune mise en ligne de fichier sur {{ $labels.instance }} ({{ $labels.job }})"
+          description: "Aucun nouveau fichier n'a été mis en ligne au cours des 6 dernières heures"
+          casDown: "Aucun nouveau fichier n'a été mis en ligne au cours des 6 dernières heures"
+          casUp: "Les mises en ligne de fichiers ont repris"
