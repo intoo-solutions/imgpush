@@ -6,3 +6,4 @@ venv
 .env
 *metrics.json
 app/*.sock
+/.idea

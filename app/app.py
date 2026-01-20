@@ -12,7 +12,7 @@ import re
 from storage import get_storage
 import filetype
 import timeout_decorator
-from flask import Flask, jsonify, request, Response, send_file, send_from_directory
+from flask import Flask, jsonify, request, Response, send_file, send_from_directory, current_app
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -36,6 +36,10 @@ logger.info("imgpush is starting...")
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
+
+app.logger.setLevel(logging.INFO)
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.INFO)
 
 logger.info("-" * 40)
 
@@ -210,6 +214,7 @@ def liveness():
     )
 )
 def upload_file():
+    current_app.logger.info("Upload file")
     _clear_imagemagick_temp_files()
 
     if "file" not in request.files:
@@ -226,6 +231,8 @@ def upload_file():
 
     # Saving the file to a temporary location
     random_string = _get_random_filename()
+    current_app.logger.info("Upload file : name generated %s", random_string)
+
     tmp_filepath = os.path.join("/tmp/", random_string)
     file.save(tmp_filepath)
     file.seek(0)
@@ -282,7 +289,7 @@ def upload_file():
 
     if error:
         return jsonify(error=error), 400
-
+    current_app.logger.info("Upload file : returning filename %s", output_filename)
     return jsonify(filename=output_filename)
 
 

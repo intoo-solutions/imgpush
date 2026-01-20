@@ -1,4 +1,4 @@
-import os
+import os as operating_system  # Rename to avoid potential overwrites
 
 #########################################
 ######          STORAGE             #####
@@ -69,7 +69,7 @@ ALLOWED_MIME_FILE_TYPES = [
 
 for variable in [item for item in globals() if not item.startswith("__")]:
     NULL = "NULL"
-    env_var = os.getenv(variable, NULL).strip()
+    env_var = operating_system.getenv(variable, NULL).strip()
     if env_var is not NULL:
         try:
             env_var = eval(env_var)
