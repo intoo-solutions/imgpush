@@ -10,8 +10,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def _redact(name, value):
+    if any(key in name for key in ["SECRET", "PASSWORD", "KEY", "TOKEN"]):
+        return "<redacted>"
+    return repr(value)
+
 
 def validate_general_settings():
+    logger.info(
+        "Loaded ALLOWED_MIME_FILE_TYPES: %s",
+        _redact("ALLOWED_MIME_FILE_TYPES", settings.ALLOWED_MIME_FILE_TYPES),
+    )
+    logger.info(
+        "Loaded RESIZABLE_MIME_FILE_TYPES: %s",
+        _redact("RESIZABLE_MIME_FILE_TYPES", settings.RESIZABLE_MIME_FILE_TYPES),
+    )
+
     if not settings.FILES_DIR and not settings.S3_ENDPOINT:
         raise ValueError("FILES_DIR or S3_ENDPOINT must be set")
 
@@ -22,14 +36,21 @@ def validate_general_settings():
         raise ValueError("RESIZABLE_MIME_FILE_TYPE must be set")
 
     mime_type_pattern = re.compile(r"^'[^']*'(,'[^']*')*$")
-    allowed_mime_file_types = os.getenv("ALLOWED_MIME_FILE_TYPES") or ""
-    resizable_mime_file_types = os.getenv("RESIZABLE_MIME_FILE_TYPES") or ""
+    allowed_mime_file_types_raw = os.getenv("ALLOWED_MIME_FILE_TYPES")
+    resizable_mime_file_types_raw = os.getenv("RESIZABLE_MIME_FILE_TYPES")
 
-    if not mime_type_pattern.match(allowed_mime_file_types):
-        raise ValueError("ALLOWED_MIME_FILE_TYPES must be in the format: 'mime1', 'mime2'")
+    # Only enforce the env var string format when the env var is actually set and non-empty
+    if allowed_mime_file_types_raw is not None and allowed_mime_file_types_raw.strip() != "":
+        if not mime_type_pattern.match(allowed_mime_file_types_raw.strip()):
+            raise ValueError(
+                "ALLOWED_MIME_FILE_TYPES must be in the format: 'mime1', 'mime2'"
+            )
 
-    if resizable_mime_file_types != "" and not mime_type_pattern.match(resizable_mime_file_types):
-        raise ValueError("RESIZABLE_MIME_FILE_TYPES must be in the format: 'mime1', 'mime2'")
+    if resizable_mime_file_types_raw is not None and resizable_mime_file_types_raw.strip() != "":
+        if not mime_type_pattern.match(resizable_mime_file_types_raw.strip()):
+            raise ValueError(
+                "RESIZABLE_MIME_FILE_TYPES must be in the format: 'mime1', 'mime2'"
+            )
     
     # check that all mime types are valid (i.e. they are in mimetypes.types_map or mimetypes.common_types)
     known_mime_types = set(mimetypes.types_map.values()).union(set(mimetypes.common_types.values()))
