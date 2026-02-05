@@ -1,8 +1,11 @@
 import os as operating_system  # Rename to avoid potential overwrites
-
+import logging
 #########################################
 ######          STORAGE             #####
 #########################################
+
+logging.basicConfig(level=logging.INFO, format="[%(asctime)s] [Settings] %(message)s")
+logger = logging.getLogger(__name__)
 
 # If this option is set to None, FILES_DIR will be used. Otherwise, imgpush will try establish a connection to the S3 endpoint
 S3_ENDPOINT = ""
@@ -67,12 +70,35 @@ ALLOWED_MIME_FILE_TYPES = [
     "application/pdf",
 ]
 
-for variable in [item for item in globals() if not item.startswith("__")]:
-    NULL = "NULL"
-    env_var = operating_system.getenv(variable, NULL).strip()
-    if env_var is not NULL:
-        try:
-            env_var = eval(env_var)
-        except Exception:
-            pass
-    globals()[variable] = env_var if env_var is not NULL else globals()[variable]
+def _redact(name, value):
+    if any(key in name for key in ["SECRET", "PASSWORD", "KEY", "TOKEN"]):
+        return "<redacted>"
+    return repr(value)
+
+
+for variable in [item for item in globals() if item.isupper()]:
+    default_value = globals()[variable]
+    env_raw = operating_system.getenv(variable)
+    if env_raw is None:
+        logger.info(
+            "%s not set; using default: %s", variable, _redact(variable, default_value)
+        )
+        continue
+
+    env_var = env_raw.strip()
+    # Treat empty values as unset so defaults remain in effect
+    if env_var == "":
+        logger.info(
+            "%s set empty; using default: %s", variable, _redact(variable, default_value)
+        )
+        continue
+
+    try:
+        env_val = eval(env_var)
+    except Exception:
+        env_val = env_var
+
+    logger.info(
+        "%s overridden from env; value: %s", variable, _redact(variable, env_val)
+    )
+    globals()[variable] = env_val
