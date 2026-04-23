@@ -1,5 +1,6 @@
 import datetime
 import logging
+import math
 import mimetypes
 import time
 import glob
@@ -16,11 +17,14 @@ from flask import Flask, jsonify, request, Response, send_file, send_from_direct
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from wand.color import Color
+from wand.drawing import Drawing
 from wand.exceptions import MissingDelegateError
 from wand.image import Image
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import settings
+from banners import BANNERS
 
 level = logging.INFO
 if os.getenv("DEBUG", "0") == "1":
@@ -198,6 +202,56 @@ def _resize_image(path, width, height):
     return img
 
 
+def _apply_banner(img, banner_key):
+    banner = BANNERS.get(banner_key)
+    if not banner:
+        return
+
+    ribbon_height = max(int(min(img.width, img.height) * 0.3), 30)
+    diagonal = int(math.sqrt(img.width ** 2 + img.height ** 2)) + 2
+    cx = img.width // 2
+    cy = img.height // 2
+    font_size = int(ribbon_height * 0.55)
+
+    # Semi-transparent background: #RRGGBB + alpha byte (BF ≈ 75% opaque)
+    bg_with_alpha = f"{banner['background']}BF"
+
+    # Visible ribbon length along the diagonal = (W+H)/√2.
+    # Subtract one ribbon_height of padding on each side to stay clear of border radii.
+    visible_ribbon = (img.width + img.height) / math.sqrt(2)
+    max_text_width = visible_ribbon - 2 * ribbon_height
+
+    with Drawing() as draw:
+        draw.font_size = font_size
+        while font_size > 6:
+            metrics = draw.get_font_metrics(img, banner["text"])
+            if metrics.text_width <= max_text_width:
+                break
+            font_size -= 1
+            draw.font_size = font_size
+
+        draw.push()
+        draw.translate(cx, cy)
+        draw.rotate(-45)
+
+        draw.fill_color = Color(bg_with_alpha)
+        draw.stroke_width = 0
+        draw.rectangle(
+            left=-diagonal // 2,
+            top=-ribbon_height // 2,
+            right=diagonal // 2,
+            bottom=ribbon_height // 2,
+        )
+
+        draw.fill_color = Color(banner["text_color"])
+        draw.font_weight = 700
+        draw.text_alignment = "center"
+        draw.text(0, int(font_size * 0.35), banner["text"])
+
+        draw.pop()
+        draw(img)
+
+
 @app.route("/liveness", methods=["GET"])
 def liveness():
     return Response(status=200)
@@ -320,10 +374,10 @@ def get_file(filename):
 
     width = request.args.get("w", "")
     height = request.args.get("h", "")
+    raw_banner_key = request.args.get("banner", "")
+    banner_key = raw_banner_key if raw_banner_key in BANNERS else ""
 
-    # If the file type is resizable and the user is asking for a resized version
-    # we first check if it is cached before downloading the file
-    if mime_type in settings.RESIZABLE_MIME_FILE_TYPES and (width or height):
+    if mime_type in settings.RESIZABLE_MIME_FILE_TYPES and (width or height or banner_key):
         try:
             width = _get_size_from_string(width)
             height = _get_size_from_string(height)
@@ -333,7 +387,7 @@ def get_file(filename):
                 400,
             )
 
-        response = get_or_create_resized_image(filename, width, height)
+        response = get_or_create_resized_image(filename, width, height, banner_key)
         apply_cache(response)
         return response
 
@@ -353,34 +407,41 @@ def apply_cache(response):
     response.headers["Expires"] = f"{60*60}"
 
 
-def get_or_create_resized_image(filename, width, height):
+def get_or_create_resized_image(filename, width, height, banner_key=""):
     filename_without_extension, extension_with_dot = os.path.splitext(filename)
     extension = extension_with_dot[1:]  # remove the dot from the extension
     dimensions = f"{width}x{height}"
-    resized_filename = f"{filename_without_extension}_{dimensions}.{extension}"
+    banner_suffix = f"_b{banner_key}" if banner_key else ""
+    resized_filename = f"{filename_without_extension}_{dimensions}{banner_suffix}.{extension}"
 
     resized_path = os.path.join(settings.CACHE_DIR, resized_filename)
 
-    # If the resized version is cached, we return it
-    if os.path.isfile(resized_path) and (width or height):
+    if os.path.isfile(resized_path):
         return send_from_directory(settings.CACHE_DIR, resized_filename)
-    # If the resized version is not cached, we generate it and return it
+
+    tmp_filepath, delete_temporary_file = storage.get(filename)
+
+    if width or height:
+        img = _resize_image(tmp_filepath, width, height)
     else:
-        tmp_filepath, delete_temporary_file = storage.get(filename)
+        with Image(filename=tmp_filepath) as src:
+            img = src.clone()
 
-        resized_image = _resize_image(tmp_filepath, width, height)
-        resized_image.strip()
+    if banner_key:
+        _apply_banner(img, banner_key)
 
-        # Create cache subdirectory if needed (for folder-based uploads)
-        resized_dir = os.path.dirname(resized_path)
-        if resized_dir and not os.path.exists(resized_dir):
-            os.makedirs(resized_dir, exist_ok=True)
+    img.strip()
 
-        resized_image.save(filename=resized_path)
-        resized_image.close()
+    # Create cache subdirectory if needed (for folder-based uploads)
+    resized_dir = os.path.dirname(resized_path)
+    if resized_dir and not os.path.exists(resized_dir):
+        os.makedirs(resized_dir, exist_ok=True)
 
-        delete_temporary_file()
-        return send_file(resized_path)
+    img.save(filename=resized_path)
+    img.close()
+
+    delete_temporary_file()
+    return send_file(resized_path)
 
 
 @app.route("/metrics", methods=["GET"])
